@@ -1,0 +1,16 @@
+# node_modules folder
+node_modules/
+
+# Env config
+.env
+
+# System files
+.DS_Store
+Thumbs.db
+
+# application files
+media-downloads/*
+media-cache/*
+
+# VSCode
+.vscode/

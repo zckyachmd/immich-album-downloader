@@ -1,0 +1,13 @@
+{
+  "name": "immich-album-downloader",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "dotenv": "^16.4.7",
+    "inquirer": "^9.3.7",
+    "node-fetch": "^3.3.2",
+    "p-limit": "^4.0.0",
+    "yargs": "^17.7.2"
+  }
+}
