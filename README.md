@@ -89,6 +89,50 @@ All files are downloaded to folders that match your Immich album names — no we
 
 ---
 
+## 🐳 Docker Usage
+
+You can run Immich Album Downloader in a Docker container, which makes it easy to use without installing Node.js locally.
+
+1. **Build the Docker image locally (optional)**
+
+If you want to build the image yourself instead of using the default:
+
+```
+docker build -t ghcr.io/zckyachmd/immich-album-downloader:latest .
+```
+
+> The image name matches the default used in the wrapper script for consistency.
+
+2. **Create a `.env` file or use the existing**
+
+```
+IMMICH_BASE_URL=https://gallery.yourdomain.com/api
+IMMICH_API_KEY=your_api_key_here
+DEFAULT_OUTPUT=/downloads
+```
+
+3. **Run the container directly**
+
+```
+docker run --rm \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest --all
+```
+
+> Any CLI arguments (like `--all`, `--force`, `--only`) can be passed after the image name.
+> If no arguments are given, the container defaults to `--help`.
+
+4. **Optional: Use the provided wrapper script**
+
+```
+./immich-album-downloader.sh --all
+```
+
+> This script automatically loads `.env` and forwards all arguments to the Docker container.
+
+---
+
 ## 🧑‍🏫 Credits
 
 Crafted with caffeine & code by [zckyachmd](https://github.com/zckyachmd)  
