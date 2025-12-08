@@ -107,7 +107,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Check branch type
         id: branch
@@ -126,16 +127,46 @@ jobs:
 
           # Only check version change for main/master branches
           if [ "${{ steps.branch.outputs.is-main }}" == "true" ]; then
-            # Get previous version from git
+            # Get the last built image version from git tags
+            LAST_BUILT_VERSION=""
+            LAST_BUILT_TAG=""
+            
+            # Fetch all tags to get the latest built version
+            git fetch --tags --quiet 2>/dev/null || true
+            
+            # Get all version tags (v*.*.*) and sort them
+            if git tag -l "v*" | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$" | sort -V | tail -1 > /tmp/last-tag.txt 2>/dev/null; then
+              LAST_BUILT_TAG=$(cat /tmp/last-tag.txt)
+              if [ -n "$LAST_BUILT_TAG" ]; then
+                # Extract version number from tag (remove 'v' prefix)
+                LAST_BUILT_VERSION=$(echo "$LAST_BUILT_TAG" | sed 's/^v//')
+                echo "last-built-version=$LAST_BUILT_VERSION" >> $GITHUB_OUTPUT
+                echo "last-built-tag=$LAST_BUILT_TAG" >> $GITHUB_OUTPUT
+                echo "Found last built image version: $LAST_BUILT_VERSION (tag: $LAST_BUILT_TAG)"
+              fi
+            fi
+            
+            # Also check previous version from git commit history
+            PREV_COMMIT_VERSION=""
             if git show HEAD~1:package.json > /tmp/prev-package.json 2>/dev/null; then
-              PREV_VERSION=$(node -p "require('/tmp/prev-package.json').version")
-              echo "previous=$PREV_VERSION" >> $GITHUB_OUTPUT
-
-              if [ "$CURRENT_VERSION" != "$PREV_VERSION" ]; then
-                echo "Version changed from $PREV_VERSION to $CURRENT_VERSION"
+              PREV_COMMIT_VERSION=$(node -p "require('/tmp/prev-package.json').version")
+              echo "previous-commit-version=$PREV_COMMIT_VERSION" >> $GITHUB_OUTPUT
+            fi
+            
+            # Compare with the last built version (preferred) or previous commit version
+            COMPARE_VERSION="$LAST_BUILT_VERSION"
+            if [ -z "$COMPARE_VERSION" ]; then
+              COMPARE_VERSION="$PREV_COMMIT_VERSION"
+            fi
+            
+            if [ -n "$COMPARE_VERSION" ]; then
+              echo "previous=$COMPARE_VERSION" >> $GITHUB_OUTPUT
+              
+              if [ "$CURRENT_VERSION" != "$COMPARE_VERSION" ]; then
+                echo "Version changed from $COMPARE_VERSION to $CURRENT_VERSION"
                 echo "changed=true" >> $GITHUB_OUTPUT
               else
-                echo "Version unchanged: $CURRENT_VERSION"
+                echo "Version unchanged: $CURRENT_VERSION (same as last built: $COMPARE_VERSION)"
                 echo "changed=false" >> $GITHUB_OUTPUT
               fi
             else
@@ -167,7 +198,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Check for code changes
         id: changes
@@ -183,22 +215,52 @@ jobs:
             ".dockerignore"
           )
 
-          # For merge commits, compare with the base branch (main/master) instead of HEAD~1
-          # This ensures we detect changes even when merging from develop
-          if git show --format="%P" -s HEAD | grep -q " "; then
-            # This is a merge commit
+          # Fetch tags to find the last built image commit
+          git fetch --tags --quiet 2>/dev/null || true
+
+          # Get the commit SHA of the last built image (from git tags)
+          LAST_BUILT_SHA=""
+          LAST_BUILT_TAG=""
+
+          # For main/master branches, try to find the last built image commit
+          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            # Get the latest version tag
+            if git tag -l "v*" | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$" | sort -V | tail -1 > /tmp/last-tag.txt 2>/dev/null; then
+              LAST_BUILT_TAG=$(cat /tmp/last-tag.txt)
+              if [ -n "$LAST_BUILT_TAG" ]; then
+                # Get the commit SHA for this tag
+                LAST_BUILT_SHA=$(git rev-list -n 1 "$LAST_BUILT_TAG" 2>/dev/null || echo "")
+                if [ -n "$LAST_BUILT_SHA" ]; then
+                  echo "Found last built image tag: $LAST_BUILT_TAG (commit: $LAST_BUILT_SHA)"
+                fi
+              fi
+            fi
+          fi
+
+          # Determine which commit to compare with
+          COMPARE_SHA=""
+
+          if [ -n "$LAST_BUILT_SHA" ] && [ "$LAST_BUILT_SHA" != "${{ github.sha }}" ]; then
+            # Compare with the last built image commit
+            COMPARE_SHA="$LAST_BUILT_SHA"
+            echo "Comparing with last built image commit: $COMPARE_SHA (tag: $LAST_BUILT_TAG)"
+          elif git show --format="%P" -s HEAD | grep -q " "; then
+            # This is a merge commit, compare with the base branch
             echo "Detected merge commit"
-            # Get the first parent (the branch we're merging into)
             BASE_SHA=$(git rev-parse HEAD^1)
-            # Get the second parent (the branch we're merging from)
-            MERGE_SHA=$(git rev-parse HEAD^2)
-            # Compare merge commit with base branch to see what's new
-            CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
-            echo "Comparing merge commit with base branch: $BASE_SHA"
+            COMPARE_SHA="$BASE_SHA"
+            echo "Comparing merge commit with base branch: $COMPARE_SHA"
           else
             # Regular commit, compare with previous commit
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            COMPARE_SHA="HEAD~1"
             echo "Comparing with previous commit: HEAD~1"
+          fi
+
+          # Get list of changed files
+          if [ -n "$COMPARE_SHA" ]; then
+            CHANGED_FILES=$(git diff --name-only "$COMPARE_SHA" HEAD)
+          else
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
           fi
 
           CODE_CHANGED=false
@@ -214,10 +276,10 @@ jobs:
 
           if [ "$CODE_CHANGED" = "true" ]; then
             echo "code-changed=true" >> $GITHUB_OUTPUT
-            echo "✅ Code changes detected - Docker image will be built"
+            echo "✅ Code changes detected since last built image - Docker image will be built"
           else
             echo "code-changed=false" >> $GITHUB_OUTPUT
-            echo "ℹ️  No code changes detected - skipping Docker image build"
+            echo "ℹ️  No code changes detected since last built image - skipping Docker image build"
             echo "Changed files:"
             echo "$CHANGED_FILES"
           fi
