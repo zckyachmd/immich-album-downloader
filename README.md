@@ -67,12 +67,14 @@ Then edit `.env` with your configuration. The `.env.example` file contains all a
 ### 3. Run it
 
 **Local installation:**
+
 ```bash
 pnpm run download       # Interactive mode - select albums
 pnpm run download:all   # Download all albums (quick start)
 ```
 
 **Docker (using pre-built image from GitHub Container Registry):**
+
 ```bash
 # Create .env file with your configuration
 cp .env.example .env
@@ -94,6 +96,7 @@ docker run --rm \
 ```
 
 **Docker Compose (alternative):**
+
 ```bash
 # Create .env file with your configuration
 cp .env.example .env
