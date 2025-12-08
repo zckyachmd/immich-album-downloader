@@ -1,0 +1,87 @@
+name: 💬 Question / Support
+description: Ask a question or get help with using the tool
+title: "[Question]: "
+labels: ["question", "support"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for asking a question! We're here to help. Please provide as much detail as possible.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What is your question or what do you need help with?
+      placeholder: |
+        Ask your question here. Be as specific as possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide context about what you're trying to achieve
+      placeholder: |
+        What are you trying to do?
+        What have you tried so far?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: How are you running the tool?
+      options:
+        - Local installation (Node.js)
+        - Docker
+        - Docker Compose
+        - Other
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of Immich Album Downloader are you using?
+      placeholder: e.g., 1.0.2
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration (if relevant)
+      description: |
+        Share relevant parts of your configuration (remove sensitive information like API keys).
+      placeholder: |
+        ```env
+        # Relevant config here
+        ```
+      render: shell
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs/Output (if relevant)
+      description: If applicable, share relevant logs or output
+      placeholder: |
+        ```
+        Paste logs or output here
+        ```
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and discussions
+          required: true
+        - label: I have checked the documentation (README.md, USAGE.md)
+          required: true
+        - label: I have checked the SECURITY.md for security-related questions
+          required: false

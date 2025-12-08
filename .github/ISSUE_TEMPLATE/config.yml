@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/zckyachmd/immich-album-downloader/blob/main/README.md
+    about: Check the README and USAGE.md for detailed documentation
+  - name: 🔒 Security Issues
+    url: https://github.com/zckyachmd/immich-album-downloader/blob/main/SECURITY.md
+    about: Please report security vulnerabilities privately as described in SECURITY.md
+  - name: 💬 Discussions
+    url: https://github.com/zckyachmd/immich-album-downloader/discussions
+    about: Ask questions and discuss ideas with the community
