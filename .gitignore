@@ -1,6 +1,10 @@
 # node_modules folder
 node_modules/
 
+# Package manager lock files (keep pnpm-lock.yaml, ignore npm/yarn)
+package-lock.json
+yarn.lock
+
 # Env config
 .env
 
@@ -14,3 +18,11 @@ media-cache/*
 
 # VSCode
 .vscode/
+
+# Test coverage reports
+coverage/
+*.lcov
+
+# Test logs and temporary files
+*.log
+*.test.log

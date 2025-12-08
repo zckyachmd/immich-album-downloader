@@ -7,8 +7,8 @@ export const commonOptions = {
   },
   concurrency: {
     type: "number",
-    default: 5,
-    describe: "Number of concurrent downloads (default: 5)",
+    describe:
+      "Number of concurrent downloads (default: 5, can be set via IMMICH_CONCURRENCY env var)",
     alias: "c",
   },
   exclude: {
@@ -29,8 +29,7 @@ export const commonOptions = {
   },
   "max-retries": {
     type: "number",
-    default: 3,
-    describe: "Maximum number of retries (default: 3)",
+    describe: "Maximum number of retries (default: 3, can be set via IMMICH_MAX_RETRIES env var)",
     alias: "r",
   },
   only: {
@@ -52,11 +51,40 @@ export const commonOptions = {
     type: "boolean",
     default: false,
     describe: "Only retry previously failed downloads",
+    alias: "R",
   },
   verbose: {
     alias: "v",
     type: "boolean",
     default: false,
     describe: "Enable detailed logging output",
+  },
+  "cleanup-db": {
+    type: "number",
+    describe: "Clean up database records older than N days (default: 90, only failed records)",
+  },
+  "cleanup-db-all": {
+    type: "boolean",
+    default: false,
+    describe: "Clean up all old records (not just failed) when using --cleanup-db",
+  },
+  "backup-db": {
+    type: "string",
+    describe: "Create database backup to specified path (or auto-generate if path ends with '/')",
+  },
+  "restore-db": {
+    type: "string",
+    describe: "Restore database from backup file path",
+  },
+  "list-backups": {
+    type: "boolean",
+    default: false,
+    describe: "List all available database backups",
+  },
+  help: {
+    type: "boolean",
+    default: false,
+    describe: "Show help message and exit",
+    alias: "h",
   },
 };

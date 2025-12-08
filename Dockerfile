@@ -1,24 +1,37 @@
 # ---- Base image ----
-FROM node:20-alpine
+FROM node:20-alpine AS base
+
+# ---- Install pnpm globally ----
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # ---- App directory ----
 WORKDIR /app
 
-# ---- Copy package files first (better caching) ----
-COPY package.json package-lock.json ./
+# ---- Dependencies stage ----
+FROM base AS dependencies
 
-# ---- Install dependencies ----
-RUN npm install --production
+# Copy package files first (better caching)
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
 
-# ---- Copy source code ----
+# Install dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# ---- Production stage ----
+FROM base AS production
+
+# Copy dependencies from dependencies stage
+COPY --from=dependencies /app/node_modules ./node_modules
+
+# Copy source code
 COPY . .
 
-# ---- Create default output folder ----
+# Create default output folder
 RUN mkdir -p /downloads
 
-# ---- Environment values (optional defaults) ----
-ENV DEFAULT_OUTPUT=/downloads
+# Environment values (optional defaults)
+ENV DEFAULT_OUTPUT=/downloads \
+    NODE_ENV=production
 
-# ---- Entry point ----
+# Entry point
 ENTRYPOINT ["node", "main.js"]
 CMD []
