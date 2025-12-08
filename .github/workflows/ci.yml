@@ -102,11 +102,21 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.current }}
       version-changed: ${{ steps.version.outputs.changed }}
+      is-main-branch: ${{ steps.branch.outputs.is-main }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
+
+      - name: Check branch type
+        id: branch
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            echo "is-main=true" >> $GITHUB_OUTPUT
+          else
+            echo "is-main=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Get current version
         id: version
@@ -114,33 +124,45 @@ jobs:
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
-          # Get previous version from git
-          if git show HEAD~1:package.json > /tmp/prev-package.json 2>/dev/null; then
-            PREV_VERSION=$(node -p "require('/tmp/prev-package.json').version")
-            echo "previous=$PREV_VERSION" >> $GITHUB_OUTPUT
+          # Only check version change for main/master branches
+          if [ "${{ steps.branch.outputs.is-main }}" == "true" ]; then
+            # Get previous version from git
+            if git show HEAD~1:package.json > /tmp/prev-package.json 2>/dev/null; then
+              PREV_VERSION=$(node -p "require('/tmp/prev-package.json').version")
+              echo "previous=$PREV_VERSION" >> $GITHUB_OUTPUT
 
-            if [ "$CURRENT_VERSION" != "$PREV_VERSION" ]; then
-              echo "Version changed from $PREV_VERSION to $CURRENT_VERSION"
-              echo "changed=true" >> $GITHUB_OUTPUT
+              if [ "$CURRENT_VERSION" != "$PREV_VERSION" ]; then
+                echo "Version changed from $PREV_VERSION to $CURRENT_VERSION"
+                echo "changed=true" >> $GITHUB_OUTPUT
+              else
+                echo "Version unchanged: $CURRENT_VERSION"
+                echo "changed=false" >> $GITHUB_OUTPUT
+              fi
             else
-              echo "Version unchanged: $CURRENT_VERSION"
-              echo "changed=false" >> $GITHUB_OUTPUT
+              echo "No previous version found (first commit or new file)"
+              echo "changed=true" >> $GITHUB_OUTPUT
             fi
           else
-            echo "No previous version found (first commit or new file)"
+            # For develop branch, always set changed=true (not used, but needed for output)
             echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Skipping version check for develop branch"
           fi
 
       - name: Output version info
         run: |
           echo "Current version: ${{ steps.version.outputs.current }}"
           echo "Version changed: ${{ steps.version.outputs.changed }}"
+          echo "Is main branch: ${{ steps.branch.outputs.is-main }}"
 
   build-image:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [test, check-version]
-    if: needs.check-version.outputs.version-changed == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    if: |
+      github.event_name == 'push' && (
+        (github.ref == 'refs/heads/develop') ||
+        ((github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.check-version.outputs.version-changed == 'true')
+      )
     permissions:
       contents: read
       packages: write
@@ -196,7 +218,11 @@ jobs:
 
       - name: Output image info
         run: |
-          echo "Docker image built for version ${{ needs.check-version.outputs.version }}"
+          if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+            echo "Docker image built for develop branch"
+          else
+            echo "Docker image built for version ${{ needs.check-version.outputs.version }}"
+          fi
 
   create-release:
     name: Create Release
