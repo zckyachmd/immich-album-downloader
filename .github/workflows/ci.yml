@@ -181,8 +181,23 @@ jobs:
             ".dockerignore"
           )
 
-          # Get list of changed files
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          # For merge commits, compare with the base branch (main/master) instead of HEAD~1
+          # This ensures we detect changes even when merging from develop
+          if git show --format="%P" -s HEAD | grep -q " "; then
+            # This is a merge commit
+            echo "Detected merge commit"
+            # Get the first parent (the branch we're merging into)
+            BASE_SHA=$(git rev-parse HEAD^1)
+            # Get the second parent (the branch we're merging from)
+            MERGE_SHA=$(git rev-parse HEAD^2)
+            # Compare merge commit with base branch to see what's new
+            CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
+            echo "Comparing merge commit with base branch: $BASE_SHA"
+          else
+            # Regular commit, compare with previous commit
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            echo "Comparing with previous commit: HEAD~1"
+          fi
 
           CODE_CHANGED=false
 
@@ -213,7 +228,7 @@ jobs:
       github.event_name == 'push' &&
       needs.check-code-changes.outputs.code-changed == 'true' && (
         (github.ref == 'refs/heads/develop') ||
-        ((github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && needs.check-version.outputs.version-changed == 'true')
+        (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
       )
     permissions:
       contents: read
