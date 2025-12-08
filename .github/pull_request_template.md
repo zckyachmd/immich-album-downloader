@@ -29,9 +29,9 @@ Related to #
 
 <!-- Describe the changes in detail -->
 
-- 
-- 
-- 
+-
+-
+-
 
 ## Testing
 
@@ -40,8 +40,8 @@ Related to #
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] All existing tests pass locally
 - [ ] I have tested this manually with the following scenarios:
-  - 
-  - 
+  -
+  -
 
 ### Test Commands
 
