@@ -219,9 +219,66 @@ node main.js -V
 
 You can run Immich Album Downloader in a Docker container, which makes it easy to use without installing Node.js locally.
 
-### Option 1: Docker Compose (Recommended)
+### Option 1: Docker Run with Pre-built Image (Recommended)
 
-The easiest way to run Immich Album Downloader is using Docker Compose:
+The simplest way is to use the pre-built image from GitHub Container Registry:
+
+1. **Create a `.env` file** with your configuration:
+
+```bash
+IMMICH_BASE_URL=https://gallery.yourdomain.com/api
+IMMICH_API_KEY=your_api_key_here
+DEFAULT_OUTPUT=/downloads
+IMMICH_CONCURRENCY=5
+IMMICH_MAX_RETRIES=3
+```
+
+2. **Run the container directly**:
+
+```bash
+# Interactive mode (select albums)
+docker run --rm -it \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  -v "$(pwd)/media-cache:/app/media-cache" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest
+
+# Download all albums
+docker run --rm \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  -v "$(pwd)/media-cache:/app/media-cache" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest --all
+
+# Resume failed downloads
+docker run --rm \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  -v "$(pwd)/media-cache:/app/media-cache" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest --resume-failed
+
+# Dry run with verbose
+docker run --rm \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  -v "$(pwd)/media-cache:/app/media-cache" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest --dry-run --verbose
+
+# Download specific album
+docker run --rm \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  -v "$(pwd)/media-cache:/app/media-cache" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest --only "vacation"
+```
+
+> 💡 **Tip:** Any CLI arguments (like `--all`, `--force`, `--only`) can be passed after the image name.
+>
+> 💡 **Tip:** Use specific version tags for stability: `ghcr.io/zckyachmd/immich-album-downloader:v1.0.2` or `ghcr.io/zckyachmd/immich-album-downloader:1.0.2`
+
+### Option 2: Docker Compose
+
+For easier management and configuration, use Docker Compose:
 
 1. **Create a `.env` file** with your configuration:
 
@@ -258,44 +315,6 @@ docker-compose logs -f
 ```
 
 > 💡 **Tip:** Use `docker-compose run --rm` for one-time commands, or `docker-compose up` for interactive mode.
-
-### Option 2: Docker Run (Direct)
-
-1. **Create a `.env` file** with your configuration:
-
-```bash
-IMMICH_BASE_URL=https://gallery.yourdomain.com/api
-IMMICH_API_KEY=your_api_key_here
-DEFAULT_OUTPUT=/downloads
-```
-
-2. **Run the container directly**:
-
-```bash
-# Interactive mode
-docker run --rm -it \
-  --env-file .env \
-  -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
-  ghcr.io/zckyachmd/immich-album-downloader:latest
-
-# Download all albums
-docker run --rm \
-  --env-file .env \
-  -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
-  ghcr.io/zckyachmd/immich-album-downloader:latest --all
-
-# Resume failed downloads
-docker run --rm \
-  --env-file .env \
-  -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
-  ghcr.io/zckyachmd/immich-album-downloader:latest --resume-failed
-```
-
-> Any CLI arguments (like `--all`, `--force`, `--only`) can be passed after the image name.
-> If no arguments are given, the container defaults to interactive mode.
 
 ### Option 3: Build Locally (Optional)
 

@@ -72,7 +72,28 @@ pnpm run download       # Interactive mode - select albums
 pnpm run download:all   # Download all albums (quick start)
 ```
 
-**Docker Compose (recommended for easy setup):**
+**Docker (using pre-built image from GitHub Container Registry):**
+```bash
+# Create .env file with your configuration
+cp .env.example .env
+# Edit .env with your Immich server details
+
+# Run interactive mode
+docker run --rm -it \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  -v "$(pwd)/media-cache:/app/media-cache" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest
+
+# Or download all albums
+docker run --rm \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  -v "$(pwd)/media-cache:/app/media-cache" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest --all
+```
+
+**Docker Compose (alternative):**
 ```bash
 # Create .env file with your configuration
 cp .env.example .env
