@@ -178,7 +178,7 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [test, check-version, build-image]
-    if: needs.check-version.outputs.version-changed == 'true'
+    if: needs.check-version.outputs.version-changed == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     permissions:
       contents: write
     steps:

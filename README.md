@@ -66,12 +66,28 @@ Then edit `.env` with your configuration. The `.env.example` file contains all a
 
 ### 3. Run it
 
+**Local installation:**
 ```bash
 pnpm run download       # Interactive mode - select albums
 pnpm run download:all   # Download all albums (quick start)
 ```
 
+**Docker Compose (recommended for easy setup):**
+```bash
+# Create .env file with your configuration
+cp .env.example .env
+# Edit .env with your Immich server details
+
+# Run interactive mode
+docker-compose up
+
+# Or download all albums
+docker-compose run --rm immich-album-downloader --all
+```
+
 > 💡 **Tip:** Logs go to the console _and_ `media-cache/immich-album-downloader.log`. No surprises.
+>
+> 💡 **Tip:** See [USAGE.md](./USAGE.md) for complete Docker usage guide including Docker Compose examples.
 >
 > 💡 **Tip:** Most CLI options have short aliases:
 >
