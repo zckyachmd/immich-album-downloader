@@ -1,0 +1,367 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  format:
+    name: Code Formatting
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format code
+        run: pnpm run format
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit changes
+        if: steps.changes.outputs.changed == 'true' && github.event_name == 'push'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "style: auto-format code with Prettier [skip ci]
+
+          Automated formatting fixes applied by Prettier."
+          git push
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: format
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Run tests with coverage
+        run: pnpm run test:coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  check-version:
+    name: Check Version Change
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    outputs:
+      version: ${{ steps.version.outputs.current }}
+      version-changed: ${{ steps.version.outputs.changed }}
+      is-main-branch: ${{ steps.branch.outputs.is-main }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check branch type
+        id: branch
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/main" ] || [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            echo "is-main=true" >> $GITHUB_OUTPUT
+          else
+            echo "is-main=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get current version
+        id: version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          # Only check version change for main/master branches
+          if [ "${{ steps.branch.outputs.is-main }}" == "true" ]; then
+            # Get previous version from git
+            if git show HEAD~1:package.json > /tmp/prev-package.json 2>/dev/null; then
+              PREV_VERSION=$(node -p "require('/tmp/prev-package.json').version")
+              echo "previous=$PREV_VERSION" >> $GITHUB_OUTPUT
+
+              if [ "$CURRENT_VERSION" != "$PREV_VERSION" ]; then
+                echo "Version changed from $PREV_VERSION to $CURRENT_VERSION"
+                echo "changed=true" >> $GITHUB_OUTPUT
+              else
+                echo "Version unchanged: $CURRENT_VERSION"
+                echo "changed=false" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "No previous version found (first commit or new file)"
+              echo "changed=true" >> $GITHUB_OUTPUT
+            fi
+          else
+            # For develop branch, always set changed=true (not used, but needed for output)
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Skipping version check for develop branch"
+          fi
+
+      - name: Output version info
+        run: |
+          echo "Current version: ${{ steps.version.outputs.current }}"
+          echo "Version changed: ${{ steps.version.outputs.changed }}"
+          echo "Is main branch: ${{ steps.branch.outputs.is-main }}"
+
+  check-code-changes:
+    name: Check Code Changes
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    outputs:
+      code-changed: ${{ steps.changes.outputs.code-changed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for code changes
+        id: changes
+        run: |
+          # List of source code files/directories that should trigger build
+          CODE_PATTERNS=(
+            "main.js"
+            "lib/"
+            "cli/"
+            "package.json"
+            "pnpm-lock.yaml"
+            "Dockerfile"
+            ".dockerignore"
+          )
+
+          # For merge commits, compare with the base branch (main/master) instead of HEAD~1
+          # This ensures we detect changes even when merging from develop
+          if git show --format="%P" -s HEAD | grep -q " "; then
+            # This is a merge commit
+            echo "Detected merge commit"
+            # Get the first parent (the branch we're merging into)
+            BASE_SHA=$(git rev-parse HEAD^1)
+            # Get the second parent (the branch we're merging from)
+            MERGE_SHA=$(git rev-parse HEAD^2)
+            # Compare merge commit with base branch to see what's new
+            CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
+            echo "Comparing merge commit with base branch: $BASE_SHA"
+          else
+            # Regular commit, compare with previous commit
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            echo "Comparing with previous commit: HEAD~1"
+          fi
+
+          CODE_CHANGED=false
+
+          # Check if any code files changed
+          for pattern in "${CODE_PATTERNS[@]}"; do
+            if echo "$CHANGED_FILES" | grep -qE "^${pattern}"; then
+              CODE_CHANGED=true
+              echo "Found changes in: $pattern"
+              break
+            fi
+          done
+
+          if [ "$CODE_CHANGED" = "true" ]; then
+            echo "code-changed=true" >> $GITHUB_OUTPUT
+            echo "✅ Code changes detected - Docker image will be built"
+          else
+            echo "code-changed=false" >> $GITHUB_OUTPUT
+            echo "ℹ️  No code changes detected - skipping Docker image build"
+            echo "Changed files:"
+            echo "$CHANGED_FILES"
+          fi
+
+  build-image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, check-version, check-code-changes]
+    if: |
+      github.event_name == 'push' &&
+      needs.check-code-changes.outputs.code-changed == 'true' && (
+        (github.ref == 'refs/heads/develop') ||
+        (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      )
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=v${{ steps.version.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=Immich Album Downloader
+            org.opencontainers.image.description=CLI tool for backing up Immich albums
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Output image info
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+            echo "Docker image built for develop branch"
+          else
+            echo "Docker image built for version ${{ needs.check-version.outputs.version }}"
+          fi
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [test, check-version, check-code-changes, build-image]
+    if: |
+      needs.check-version.outputs.version-changed == 'true' &&
+      needs.check-code-changes.outputs.code-changed == 'true' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create Git tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.version.outputs.version }}';
+            const tag = `v${version}`;
+
+            // Check if tag already exists
+            const { data: existingTags } = await github.rest.repos.listTags({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            const tagExists = existingTags.some(t => t.name === tag);
+
+            if (!tagExists) {
+              // Create annotated tag
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `refs/tags/${tag}`,
+                sha: context.sha,
+              });
+
+              console.log(`Created tag: ${tag}`);
+            } else {
+              console.log(`Tag ${tag} already exists, skipping`);
+            }
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: |
+            ## Changes in v${{ steps.version.outputs.version }}
+
+            See [CHANGELOG.md](./CHANGELOG.md) for detailed changes.
+
+            ### Docker Image
+            - Image: `ghcr.io/${{ github.repository }}:v${{ steps.version.outputs.version }}`
+            - Image: `ghcr.io/${{ github.repository }}:latest`
+            - Image: `ghcr.io/${{ github.repository }}:${{ needs.check-version.outputs.version }}`
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

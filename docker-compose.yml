@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  immich-album-downloader:
+    image: ghcr.io/zckyachmd/immich-album-downloader:latest
+    container_name: immich-album-downloader
+    restart: unless-stopped
+
+    environment:
+      # Required: Immich server configuration
+      - IMMICH_BASE_URL=${IMMICH_BASE_URL:-https://your-immich-server.com/api}
+      - IMMICH_API_KEY=${IMMICH_API_KEY:-your_api_key_here}
+
+      # Optional: Output directory (default: /downloads)
+      - DEFAULT_OUTPUT=${DEFAULT_OUTPUT:-/downloads}
+
+      # Optional: Download settings
+      - IMMICH_CONCURRENCY=${IMMICH_CONCURRENCY:-5}
+      - IMMICH_MAX_RETRIES=${IMMICH_MAX_RETRIES:-3}
+      - IMMICH_DOWNLOAD_TIMEOUT=${IMMICH_DOWNLOAD_TIMEOUT:-30000}
+
+      # Optional: Rate limiting
+      - IMMICH_RATE_LIMIT_REQUESTS=${IMMICH_RATE_LIMIT_REQUESTS:-100}
+      - IMMICH_RATE_LIMIT_WINDOW_MS=${IMMICH_RATE_LIMIT_WINDOW_MS:-60000}
+
+      # Optional: SSL/TLS (set to false for self-signed certificates)
+      - IMMICH_SSL_VERIFY=${IMMICH_SSL_VERIFY:-true}
+
+      # Optional: Node environment
+      - NODE_ENV=${NODE_ENV:-production}
+
+    volumes:
+      # Mount download directory to persist downloads
+      - ./downloads:/downloads
+
+      # Mount media-cache to persist database and logs
+      - ./media-cache:/app/media-cache
+
+    # Command to run (override default entrypoint if needed)
+    # Examples:
+    # - Run interactive mode: (default, no command needed)
+    # - Download all: command: ["--all"]
+    # - Resume failed: command: ["--resume-failed"]
+    # - Dry run: command: ["--dry-run", "--verbose"]
+    # command: ["--all"]
+
+    # Health check (optional)
+    # Note: This is a simple check - adjust based on your needs
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits (optional, adjust as needed)
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M

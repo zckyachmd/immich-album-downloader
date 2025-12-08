@@ -23,124 +23,186 @@ Here's what you're getting out of the box:
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### 1. Clone and install
 
 ```bash
 git clone https://github.com/zckyachmd/immich-album-downloader.git
 cd immich-album-downloader
-npm install
+pnpm install
 ```
+
+> 💡 **Note:** This project uses [pnpm](https://pnpm.io/) for faster and more efficient package management. If you don't have pnpm installed, you can install it with `npm install -g pnpm` or use `corepack enable` (Node.js 16.13+).
 
 ### 2. Set up your `.env`
 
-```dotenv
-IMMICH_BASE_URL=https://gallery.yourdomain.com/api
-IMMICH_API_KEY=your_api_key_here
-DEFAULT_OUTPUT=./media-downloads
-```
+Copy the example file and fill in your values:
 
----
-
-## 🧑‍💻 Usage
-
-Start the CLI:
 ```bash
-node main.js
+cp .env.example .env
 ```
 
-> Logs go to the console *and* `media-cache/immich-album-downloader.log`. No surprises.
+Then edit `.env` with your configuration. The `.env.example` file contains all available options with detailed comments.
+
+**Required configuration:**
+
+- `IMMICH_BASE_URL` - Your Immich server URL
+- `IMMICH_API_KEY` - Your Immich API key
+
+**Optional configuration (all can be overridden via CLI arguments):**
+
+- `DEFAULT_OUTPUT` - Default download directory (override with `--output` or `-o`)
+- `IMMICH_CONCURRENCY` - Concurrent downloads (override with `--concurrency` or `-c`)
+- `IMMICH_MAX_RETRIES` - Max retries (override with `--max-retries` or `-r`)
+- `IMMICH_DOWNLOAD_TIMEOUT` - Download timeout in milliseconds (5000-600000, default: 30000)
+- `IMMICH_RATE_LIMIT_REQUESTS` - API rate limit requests per window
+- `IMMICH_RATE_LIMIT_WINDOW_MS` - Rate limit time window in milliseconds
+- `IMMICH_SSL_VERIFY` - SSL verification (set to `false` for self-signed certs)
+
+> 💡 **Tip:** CLI arguments always override `.env` values. Priority: CLI > `.env` > defaults
+>
+> 📝 **See `.env.example` for complete documentation of all configuration options.**
+
+### 3. Run it
+
+**Local installation:**
+
+```bash
+pnpm run download       # Interactive mode - select albums
+pnpm run download:all   # Download all albums (quick start)
+```
+
+**Docker (using pre-built image from GitHub Container Registry):**
+
+```bash
+# Create .env file with your configuration
+cp .env.example .env
+# Edit .env with your Immich server details
+
+# Run interactive mode
+docker run --rm -it \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  -v "$(pwd)/media-cache:/app/media-cache" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest
+
+# Or download all albums
+docker run --rm \
+  --env-file .env \
+  -v "$(pwd)/downloads:/downloads" \
+  -v "$(pwd)/media-cache:/app/media-cache" \
+  ghcr.io/zckyachmd/immich-album-downloader:latest --all
+```
+
+**Docker Compose (alternative):**
+
+```bash
+# Create .env file with your configuration
+cp .env.example .env
+# Edit .env with your Immich server details
+
+# Run interactive mode
+docker-compose up
+
+# Or download all albums
+docker-compose run --rm immich-album-downloader --all
+```
+
+> 💡 **Tip:** Logs go to the console _and_ `media-cache/immich-album-downloader.log`. No surprises.
+>
+> 💡 **Tip:** See [USAGE.md](./USAGE.md) for complete Docker usage guide including Docker Compose examples.
+>
+> 💡 **Tip:** Most CLI options have short aliases:
+>
+> - `-a` for `--all` (download all)
+> - `-R` for `--resume-failed` (resume)
+> - `-d` for `--dry-run` (preview)
+> - `-v` for `--verbose` (detailed logging)
+>
+> See [USAGE.md](./USAGE.md) for complete documentation of all aliases.
 
 ---
 
-## ⚙️ CLI Options
+## 📚 Documentation
 
-| Option / Alias        | What it does                                                 | Example                        |
-|------------------------|---------------------------------------------------------------|--------------------------------|
-| `-a`, `--all`          | Backup *everything*, no questions asked                       | `--all`                        |
-| `-f`, `--force`        | Re-download even if file already exists                       | `--force`                      |
-| `--resume-failed`      | Only retry the stuff that failed last time                    | `--resume-failed`              |
-| `-o`, `--output <dir>` | Save to a specific folder                                     | `--output ./backups`           |
-| `--only <keyword>`     | Filter album names that *contain* keyword                     | `--only vacation`              |
-| `-e`, `--exclude`      | Skip albums matching keyword                                  | `--exclude memes`              |
-| `-d`, `--dry-run`      | Run it like a preview — no files touched                      | `--dry-run`                    |
-| `-l`, `--limit-size`   | Skip files over a certain size (MB)                           | `--limit-size 200`             |
-| `-c`, `--concurrency`  | Max simultaneous downloads (default: 5)                       | `--concurrency 10`             |
-| `-r`, `--max-retries`  | How many times to retry failed downloads (default: 3)         | `--max-retries 5`              |
-| `-v`, `--verbose`      | Turn on debug logs                                            | `--verbose`                    |
-| `-h`, `--help`         | Show all available commands                                   | `--help`                       |
+- **[USAGE.md](./USAGE.md)** - Complete usage guide with CLI options, examples, and advanced features
+- **[LICENSE.md](./LICENSE.md)** - License information
+- **[SECURITY.md](./SECURITY.md)** - Security best practices and guidelines
 
 ---
 
-## 🧠 How it works (aka “the vibe check”)
+## 🧠 How it works
 
 - It talks to your Immich server using your API key
 - It fetches albums and assets, filters them based on your flags
-- For each asset, it checks:  
-  1. Does the file already exist?  
-  2. Does the checksum match?  
+- For each asset, it checks:
+  1. Does the file already exist?
+  2. Does the checksum match?
   3. Did we already mark this asset as downloaded in SQLite?
 
-- If yes → skip  
+- If yes → skip
 - If no → download it, verify it, log it, move on
 
 All files are downloaded to folders that match your Immich album names — no weird nesting.
 
 ---
 
-## 🐳 Docker Usage
+## 🧪 Testing
 
-You can run Immich Album Downloader in a Docker container, which makes it easy to use without installing Node.js locally.
+Run tests with:
 
-1. **Build the Docker image locally (optional)**
-
-If you want to build the image yourself instead of using the default:
-
-```
-docker build -t ghcr.io/zckyachmd/immich-album-downloader:latest .
+```bash
+pnpm test
 ```
 
-> The image name matches the default used in the wrapper script for consistency.
+Run tests in watch mode:
 
-2. **Create a `.env` file or use the existing**
-
-```
-IMMICH_BASE_URL=https://gallery.yourdomain.com/api
-IMMICH_API_KEY=your_api_key_here
-DEFAULT_OUTPUT=/downloads
+```bash
+pnpm run test:watch
 ```
 
-3. **Run the container directly**
+Generate coverage report:
 
-```
-docker run --rm \
-  --env-file .env \
-  -v "$(pwd)/downloads:/downloads" \
-  ghcr.io/zckyachmd/immich-album-downloader:latest --all
+```bash
+pnpm run test:coverage
 ```
 
-> Any CLI arguments (like `--all`, `--force`, `--only`) can be passed after the image name.
-> If no arguments are given, the container defaults to `--help`.
+---
 
-4. **Optional: Use the provided wrapper script**
+## 🔒 Security
 
-```
-./immich-album-downloader.sh --all
-```
+See [SECURITY.md](./SECURITY.md) for security best practices and guidelines.
 
-> This script automatically loads `.env` and forwards all arguments to the Docker container.
+Key security features:
+
+- ✅ Environment variable validation
+- ✅ Path traversal protection
+- ✅ Secure file permissions
+- ✅ Log sanitization
+- ✅ HTTPS validation
+- ✅ Rate limiting
+- ✅ Input validation
+- ✅ Health checks
 
 ---
 
 ## 🧑‍🏫 Credits
 
-Crafted with caffeine & code by [zckyachmd](https://github.com/zckyachmd)  
+Crafted with caffeine & code by [zckyachmd](https://github.com/zckyachmd)
+
 Massive respect to the [Immich](https://github.com/immich-app/immich) project for making this even possible 🙌
 
 ---
 
 ## ⚠️ Disclaimer
 
-This tool is unofficial. It’s not affiliated with Immich.  
-Your API key and photos stay on your machine — scout’s honor.
+This tool is unofficial. It's not affiliated with Immich.
+
+Your API key and photos stay on your machine — scout's honor.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE.md](./LICENSE.md) file for details.
