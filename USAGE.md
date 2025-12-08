@@ -233,12 +233,9 @@ IMMICH_CONCURRENCY=5
 IMMICH_MAX_RETRIES=3
 ```
 
-2. **Copy the example compose file** (optional):
+2. **Edit `docker-compose.yml`** with your settings (if needed):
 
-```bash
-cp docker-compose.example.yml docker-compose.yml
-# Edit docker-compose.yml with your settings
-```
+The `docker-compose.yml` file uses environment variables from `.env` file, so you mainly need to configure the `.env` file.
 
 3. **Run with Docker Compose**:
 
