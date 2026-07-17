@@ -1,9 +1,9 @@
 # node_modules folder
 node_modules/
 
-# Package manager lock files (keep pnpm-lock.yaml, ignore npm/yarn)
-package-lock.json
+# Package manager lock files
 yarn.lock
+pnpm-lock.yaml
 
 # Env config
 .env

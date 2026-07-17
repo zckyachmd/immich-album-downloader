@@ -46,8 +46,8 @@ Related to #
 
 ```bash
 # Add test commands here
-pnpm test
-pnpm run format:check
+npm test
+npm run format:check
 ```
 
 ## Checklist

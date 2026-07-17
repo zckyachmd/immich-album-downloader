@@ -1,9 +1,6 @@
 # ---- Base image ----
 FROM node:20-alpine AS base
 
-# ---- Install pnpm globally ----
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 # ---- App directory ----
 WORKDIR /app
 
@@ -11,10 +8,10 @@ WORKDIR /app
 FROM base AS dependencies
 
 # Copy package files first (better caching)
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
+COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile --prod
+RUN npm ci --omit=dev
 
 # ---- Production stage ----
 FROM base AS production

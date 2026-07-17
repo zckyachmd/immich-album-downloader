@@ -8,16 +8,14 @@ Complete guide to using Immich Album Downloader.
 
 ### Quick Start
 
-**Using pnpm scripts (recommended):**
+**Using npm scripts (recommended):**
 
 ```bash
-pnpm run download       # Interactive mode - select albums
-pnpm run download:all   # Download all albums
-pnpm run download:resume # Resume failed downloads
-pnpm run download:dry   # Preview without downloading
+npm run download       # Interactive mode - select albums
+npm run download:all   # Download all albums
+npm run download:resume # Resume failed downloads
+npm run download:dry   # Preview without downloading
 ```
-
-> 💡 **Note:** This project uses [pnpm](https://pnpm.io/) for package management. If you prefer npm, you can use `npm run` instead of `pnpm run`, but pnpm is recommended for better performance.
 
 **Using node directly:**
 
@@ -34,51 +32,49 @@ node main.js -V        # Show version (or use --version)
 
 ### Main Scripts
 
-| Script                      | Command                        | Description                                           | Alias Equivalent  |
-| --------------------------- | ------------------------------ | ----------------------------------------------------- | ----------------- |
-| `pnpm run download`         | `node main.js`                 | Interactive mode - select albums from list            | -                 |
-| `pnpm run download:all`     | `node main.js --all`           | Download all albums without prompt                    | `node main.js -a` |
-| `pnpm run download:resume`  | `node main.js --resume-failed` | Resume previously failed downloads                    | `node main.js -R` |
-| `pnpm run download:dry`     | `node main.js --dry-run`       | Preview what would be downloaded (no actual download) | `node main.js -d` |
-| `pnpm run download:verbose` | `node main.js --verbose`       | Download with detailed logging                        | `node main.js -v` |
+| Script                     | Command                        | Description                                           | Alias Equivalent  |
+| -------------------------- | ------------------------------ | ----------------------------------------------------- | ----------------- |
+| `npm run download`         | `node main.js`                 | Interactive mode - select albums from list            | -                 |
+| `npm run download:all`     | `node main.js --all`           | Download all albums without prompt                    | `node main.js -a` |
+| `npm run download:resume`  | `node main.js --resume-failed` | Resume previously failed downloads                    | `node main.js -R` |
+| `npm run download:dry`     | `node main.js --dry-run`       | Preview what would be downloaded (no actual download) | `node main.js -d` |
+| `npm run download:verbose` | `node main.js --verbose`       | Download with detailed logging                        | `node main.js -v` |
 
 ### Test Scripts
 
-| Script                   | Command           | Description                   |
-| ------------------------ | ----------------- | ----------------------------- |
-| `pnpm test`              | `jest`            | Run tests                     |
-| `pnpm run test:watch`    | `jest --watch`    | Run tests in watch mode       |
-| `pnpm run test:coverage` | `jest --coverage` | Generate test coverage report |
+| Script                  | Command           | Description                   |
+| ----------------------- | ----------------- | ----------------------------- |
+| `npm test`              | `jest`            | Run tests                     |
+| `npm run test:watch`    | `jest --watch`    | Run tests in watch mode       |
+| `npm run test:coverage` | `jest --coverage` | Generate test coverage report |
 
-### Examples with pnpm scripts:
+### Examples with npm scripts:
 
 ```bash
 # Download all albums with verbose logging
-pnpm run download:all -- --verbose
+npm run download:all -- --verbose
 # or using alias
-pnpm run download:all -- -v
+npm run download:all -- -v
 
 # Resume failed downloads with custom output
-pnpm run download:resume -- --output ./backups
+npm run download:resume -- --output ./backups
 # or using alias
-pnpm run download:resume -- -o ./backups
+npm run download:resume -- -o ./backups
 
 # Preview download with specific album filter
-pnpm run download:dry -- --only "vacation"
+npm run download:dry -- --only "vacation"
 # or using alias
-pnpm run download:dry -- --only "vacation" -v
+npm run download:dry -- --only "vacation" -v
 ```
 
 > 💡 **Note:** Use `--` to pass additional arguments to package scripts.
 >
 > 💡 **Tip:** All package scripts support aliases. For example:
 >
-> - `pnpm run download:all` = `node main.js -a`
-> - `pnpm run download:resume` = `node main.js -R`
-> - `pnpm run download:dry` = `node main.js -d`
-> - `pnpm run download:verbose` = `node main.js -v`
->
-> 💡 **Note:** You can also use `npm run` instead of `pnpm run` if you prefer, but pnpm is recommended for better performance.
+> - `npm run download:all` = `node main.js -a`
+> - `npm run download:resume` = `node main.js -R`
+> - `npm run download:dry` = `node main.js -d`
+> - `npm run download:verbose` = `node main.js -v`
 
 ---
 

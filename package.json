@@ -1,6 +1,7 @@
 {
   "name": "immich-album-downloader",
   "version": "1.0.5",
+  "packageManager": "npm@11.17.0",
   "type": "module",
   "scripts": {
     "download": "node main.js",

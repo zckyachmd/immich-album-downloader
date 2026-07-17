@@ -129,7 +129,7 @@ Security updates will be released as patch versions (e.g., 1.0.1, 1.0.2) and wil
 We regularly update dependencies to address security vulnerabilities. You can check for known vulnerabilities using:
 
 ```bash
-pnpm audit
+npm audit
 ```
 
 ## Additional Resources
