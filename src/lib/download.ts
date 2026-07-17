@@ -1,24 +1,20 @@
+// @ts-nocheck
 import fs from "fs";
 import path from "path";
 import pLimit from "p-limit";
 import readline from "readline";
-import { downloadAssetById } from "./api.js";
-import { log, logError, logProgress, logWarn, resetProgressTracking } from "./logger.js";
-import {
-  sanitizeName,
-  calculateFileHash,
-  validatePathWithinBase,
-  formatFileSize,
-} from "./helpers.js";
+import { downloadAssetById } from "./api";
+import { log, logError, logProgress, logWarn, resetProgressTracking } from "./logger";
+import { sanitizeName, calculateFileHash, validatePathWithinBase, formatFileSize } from "./helpers";
 import {
   assetAlreadyDownloaded,
   markAssetAsDownloaded,
   markAssetAsFailed,
   getFailedAssets,
-} from "./db.js";
-import { config } from "./config.js";
-import { cancellationToken } from "./cancellation.js";
-import { DatabaseError } from "./errors.js";
+} from "./db";
+import { config } from "./config";
+import { cancellationToken } from "./cancellation";
+import { DatabaseError } from "./errors";
 
 const BASE_URL = config.baseUrl;
 

@@ -1,12 +1,11 @@
 import { pipeline } from "stream/promises";
-import fetch from "node-fetch";
 import fs from "fs";
-import { config } from "./config.js";
-import { logError } from "./logger.js";
-import { rateLimiter } from "./rateLimiter.js";
-import { APIError, NetworkError } from "./errors.js";
-import { getFetchOptions } from "./fetchConfig.js";
-import { cancellationToken } from "./cancellation.js";
+import { config } from "./config";
+import { logError } from "./logger";
+import { rateLimiter } from "./rateLimiter";
+import { APIError, NetworkError } from "./errors";
+import { getFetchOptions } from "./fetchConfig";
+import { cancellationToken } from "./cancellation";
 
 const API_KEY = config.apiKey;
 const BASE_URL = config.baseUrl;

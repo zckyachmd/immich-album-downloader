@@ -1,4 +1,4 @@
-import { ConfigurationError } from "./errors.js";
+import { ConfigurationError } from "./errors";
 
 /**
  * Validates and exports configuration

@@ -1,4 +1,4 @@
-import { describe, test, expect } from "@jest/globals";
+import { describe, test, expect } from "bun:test";
 import {
   AppError,
   ConfigurationError,
@@ -8,7 +8,7 @@ import {
   PathTraversalError,
   FileSystemError,
   DatabaseError,
-} from "../errors.js";
+} from "../errors";
 
 describe("Custom Errors", () => {
   test("AppError should have correct properties", () => {

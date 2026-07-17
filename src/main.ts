@@ -1,16 +1,17 @@
+// @ts-nocheck
 import "dotenv/config";
 import inquirer from "inquirer";
 import { getAlbums, getAssetsByAlbumId } from "./lib/api.js";
 import { downloadAlbum } from "./lib/download.js";
-import { expandPath } from "./lib/helpers.js";
+import { expandPath } from "./lib/helpers";
 import { log, logError, logWarn } from "./lib/logger.js";
-import { parseArgs } from "./cli/index.js";
+import { parseArgs } from "./cli/index";
 // Import config to validate environment variables early
 import { config } from "./lib/config.js";
 import { checkHealth } from "./lib/health.js";
 import { ValidationError, ConfigurationError } from "./lib/errors.js";
 import { setupSignalHandlers, cancellationToken } from "./lib/cancellation.js";
-import { closeDatabase } from "./lib/db.js";
+import { closeDatabase } from "./lib/db";
 
 const argv = parseArgs();
 
@@ -123,7 +124,7 @@ const main = async () => {
 
   // Handle database operations (cleanup, backup, restore, list)
   if (argv["cleanup-db"] !== undefined) {
-    const { cleanupDatabase, backupDatabase } = await import("./lib/db.js");
+    const { cleanupDatabase, backupDatabase } = await import("./lib/db");
     const daysOld = argv["cleanup-db"];
     const onlyFailed = !argv["cleanup-db-all"];
 
@@ -160,12 +161,12 @@ const main = async () => {
 
   // Handle database backup
   if (argv["backup-db"] !== undefined) {
-    const { backupDatabase } = await import("./lib/db.js");
+    const { backupDatabase } = await import("./lib/db");
     let backupPath = argv["backup-db"];
 
     // If path ends with '/', treat as directory and auto-generate filename
     if (backupPath.endsWith("/") || backupPath.endsWith("\\")) {
-      const { expandPath } = await import("./lib/helpers.js");
+      const { expandPath } = await import("./lib/helpers");
       const path = await import("path");
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       backupPath = path.join(expandPath(backupPath), `downloads.db.backup.${timestamp}`);
@@ -191,7 +192,7 @@ const main = async () => {
 
   // Handle database restore
   if (argv["restore-db"] !== undefined) {
-    const { restoreDatabase } = await import("./lib/db.js");
+    const { restoreDatabase } = await import("./lib/db");
     const backupPath = argv["restore-db"];
 
     log(`⚠️  WARNING: This will replace the current database with the backup!`);
@@ -215,8 +216,8 @@ const main = async () => {
 
   // Handle list backups
   if (argv["list-backups"]) {
-    const { listBackups } = await import("./lib/db.js");
-    const { formatFileSize } = await import("./lib/helpers.js");
+    const { listBackups } = await import("./lib/db");
+    const { formatFileSize } = await import("./lib/helpers");
 
     log(`📋 Listing database backups...`);
 
@@ -345,7 +346,7 @@ const main = async () => {
     // Show database statistics if not dry-run
     if (!argv["dry-run"]) {
       try {
-        const { getDatabaseStats } = await import("./lib/db.js");
+        const { getDatabaseStats } = await import("./lib/db");
         const dbStats = await getDatabaseStats();
         log("\n📊 Overall Database Statistics:");
         log(`   Total records: ${dbStats.total}`);

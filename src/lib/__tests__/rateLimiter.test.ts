@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach } from "@jest/globals";
-import { RateLimiter } from "../rateLimiter.js";
+import { describe, test, expect, beforeEach } from "bun:test";
+import { RateLimiter } from "../rateLimiter";
 
 describe("RateLimiter", () => {
   let rateLimiter;

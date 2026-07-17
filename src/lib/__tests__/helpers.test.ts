@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach } from "@jest/globals";
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import {
   sanitizeName,
   validatePathWithinBase,
@@ -6,8 +6,8 @@ import {
   calculateFileHash,
   formatFileSize,
   formatDuration,
-} from "../helpers.js";
-import { PathTraversalError } from "../errors.js";
+} from "../helpers";
+import { PathTraversalError } from "../errors";
 import path from "path";
 import os from "os";
 import fs from "fs";

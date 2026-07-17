@@ -7,14 +7,21 @@ yarn.lock
 
 # Env config
 .env
+.env.test
 
 # System files
 .DS_Store
 Thumbs.db
 
 # application files
-media-downloads/*
-media-cache/*
+media-downloads/
+media-cache/
+downloads/
+test-dir/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
 
 # VSCode
 .vscode/
@@ -22,7 +29,12 @@ media-cache/*
 # Test coverage reports
 coverage/
 *.lcov
+.nyc_output/
 
 # Test logs and temporary files
 *.log
 *.test.log
+
+# TypeScript/Bun generated files
+*.tsbuildinfo
+node_modules.bun

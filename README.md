@@ -30,10 +30,8 @@ Here's what you're getting out of the box:
 ```bash
 git clone https://github.com/zckyachmd/immich-album-downloader.git
 cd immich-album-downloader
-pnpm install
+bun install
 ```
-
-> 💡 **Note:** This project uses [pnpm](https://pnpm.io/) for faster and more efficient package management. If you don't have pnpm installed, you can install it with `npm install -g pnpm` or use `corepack enable` (Node.js 16.13+).
 
 ### 2. Set up your `.env`
 
@@ -69,8 +67,8 @@ Then edit `.env` with your configuration. The `.env.example` file contains all a
 **Local installation:**
 
 ```bash
-pnpm run download       # Interactive mode - select albums
-pnpm run download:all   # Download all albums (quick start)
+bun run download       # Interactive mode - select albums
+bun run download:all   # Download all albums (quick start)
 ```
 
 **Docker (using pre-built image from GitHub Container Registry):**
@@ -153,19 +151,19 @@ All files are downloaded to folders that match your Immich album names — no we
 Run tests with:
 
 ```bash
-pnpm test
+bun test
 ```
 
 Run tests in watch mode:
 
 ```bash
-pnpm run test:watch
+bun run test:watch
 ```
 
 Generate coverage report:
 
 ```bash
-pnpm run test:coverage
+bun run test:coverage
 ```
 
 ---

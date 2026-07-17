@@ -1,9 +1,10 @@
+// @ts-nocheck
 import fs from "fs";
 import path from "path";
 import Database from "better-sqlite3";
-import { expandPath } from "./helpers.js";
-import { DatabaseError } from "./errors.js";
-import { logError, logWarn } from "./logger.js";
+import { expandPath } from "./helpers";
+import { DatabaseError } from "./errors";
+import { logError, logWarn } from "./logger";
 
 const dbDir = expandPath("media-cache");
 const dbPath = path.join(dbDir, "downloads.db");

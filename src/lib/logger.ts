@@ -1,7 +1,8 @@
+// @ts-nocheck
 import fs from "fs";
 import path from "path";
 import readline from "readline";
-import { expandPath, formatFileSize, formatDuration } from "./helpers.js";
+import { expandPath, formatFileSize, formatDuration } from "./helpers";
 
 const LOG_DIR = expandPath("media-cache");
 const LOG_PATH = path.join(LOG_DIR, "immich-album-downloader.log");

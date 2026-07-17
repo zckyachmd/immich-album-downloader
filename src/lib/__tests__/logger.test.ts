@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, jest } from "@jest/globals";
-import { log, resetProgressTracking, logProgress } from "../logger.js";
+import { describe, test, expect, beforeEach, afterEach, jest } from "bun:test";
+import { log, resetProgressTracking, logProgress } from "../logger";
 
 describe("logger", () => {
   let originalConsoleLog;

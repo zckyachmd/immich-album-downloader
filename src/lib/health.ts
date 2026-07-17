@@ -1,7 +1,6 @@
-import fetch from "node-fetch";
-import { config } from "./config.js";
-import { log, logError } from "./logger.js";
-import { getFetchOptions } from "./fetchConfig.js";
+import { config } from "./config";
+import { log, logError } from "./logger";
+import { getFetchOptions } from "./fetchConfig";
 
 /**
  * Checks if the Immich API is accessible and credentials are valid

@@ -1,30 +1,32 @@
 {
   "name": "immich-album-downloader",
-  "version": "1.0.2",
+  "version": "1.0.6",
+  "packageManager": "bun@1.2.21",
   "type": "module",
   "scripts": {
-    "download": "node main.js",
-    "download:all": "node main.js --all",
-    "download:resume": "node main.js --resume-failed",
-    "download:dry": "node main.js --dry-run",
-    "download:verbose": "node main.js --verbose",
-    "format": "prettier --write \"**/*.{js,json,md,yml,yaml}\"",
-    "format:check": "prettier --check \"**/*.{js,json,md,yml,yaml}\"",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
+    "download": "bun run src/main.ts",
+    "download:all": "bun run src/main.ts --all",
+    "download:resume": "bun run src/main.ts --resume-failed",
+    "download:dry": "bun run src/main.ts --dry-run",
+    "download:verbose": "bun run src/main.ts --verbose",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{ts,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,json,md,yml,yaml}\"",
+    "test": "IMMICH_API_KEY=test-api-key-1234567890 IMMICH_BASE_URL=https://example.com bun test --isolate",
+    "test:watch": "IMMICH_API_KEY=test-api-key-1234567890 IMMICH_BASE_URL=https://example.com bun test --watch --isolate"
   },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
     "dotenv": "^16.6.1",
     "inquirer": "^9.3.8",
-    "node-fetch": "^3.3.2",
     "p-limit": "^4.0.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@jest/globals": "^29.7.0",
-    "jest": "^29.7.0",
-    "prettier": "^3.7.4"
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/bun": "latest",
+    "@types/yargs": "^17.0.33",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.2"
   }
 }

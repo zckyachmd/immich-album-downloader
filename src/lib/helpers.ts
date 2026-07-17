@@ -2,7 +2,7 @@ import { homedir } from "os";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { PathTraversalError, FileSystemError } from "./errors.js";
+import { PathTraversalError, FileSystemError } from "./errors";
 
 export function expandPath(p) {
   let resolved = p.startsWith("~") ? path.join(homedir(), p.slice(1)) : path.resolve(p);

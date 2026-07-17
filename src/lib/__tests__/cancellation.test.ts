@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, jest } from "@jest/globals";
-import { cancellationToken } from "../cancellation.js";
+import { describe, test, expect, beforeEach, jest } from "bun:test";
+import { cancellationToken } from "../cancellation";
 
 describe("cancellation", () => {
   beforeEach(() => {
