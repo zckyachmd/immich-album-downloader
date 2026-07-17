@@ -35,6 +35,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          PNPM_IGNORE_SCRIPTS: false
 
       - name: Format code
         run: pnpm run format
@@ -80,6 +82,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          PNPM_IGNORE_SCRIPTS: false
 
       - name: Run tests
         run: pnpm test
