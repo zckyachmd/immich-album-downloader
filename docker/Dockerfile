@@ -12,14 +12,14 @@ WORKDIR /app
 ENV DEFAULT_OUTPUT=/downloads \
     NODE_ENV=production
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lock ./
-COPY src ./src
-
 RUN addgroup -S app && \
     adduser -S app -G app && \
-    mkdir -p /downloads /app/media-cache && \
-    chown -R app:app /app /downloads
+    mkdir -p /downloads /app/data && \
+    chown app:app /downloads /app/data
+
+COPY --from=deps --chown=app:app /app/node_modules ./node_modules
+COPY --chown=app:app package.json bun.lock ./
+COPY --chown=app:app src ./src
 
 USER app
 
