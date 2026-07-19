@@ -1,6 +1,3 @@
-import { Readable } from "stream";
-import { pipeline } from "stream/promises";
-import type { ReadableStream as NodeReadableStream } from "stream/web";
 import fs from "fs";
 import { config } from "./config";
 import { logError } from "./logger";
@@ -222,22 +219,27 @@ export async function downloadAssetById(assetId, destPath, retries = 3) {
         );
       }
 
-      const writeStream = fs.createWriteStream(destPath);
+      const file = await fs.promises.open(destPath, "w");
 
       try {
-        await pipeline(Readable.fromWeb(res.body as unknown as NodeReadableStream), writeStream);
+        const reader = res.body.getReader();
 
-        // Remove cancel listener on success
-        if (unsubscribe) {
-          unsubscribe();
+        while (true) {
+          cancellationToken.throwIfCancelled();
+
+          const { done, value } = await reader.read();
+          if (done) break;
+          await file.write(value);
         }
-
-        return true;
-      } catch (pipeErr) {
-        // Close stream on error
-        writeStream.destroy();
-        throw pipeErr;
+      } finally {
+        await file.close();
       }
+
+      if (unsubscribe) {
+        unsubscribe();
+      }
+
+      return true;
     } catch (err) {
       clearTimeout(timeout);
 
