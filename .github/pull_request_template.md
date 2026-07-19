@@ -47,7 +47,7 @@ Related to #
 ```bash
 # Add test commands here
 bun test
-bun run format:check
+bun run typecheck
 ```
 
 ## Checklist

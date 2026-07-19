@@ -1,61 +1,45 @@
-# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Environment files
 .env
 .env.local
 .env.*.local
 
-# Application files
 media-downloads/
 media-cache/
 downloads/
+test-dir/
 
-# Git
 .git/
+.github/
 .gitignore
 .gitattributes
 
-# Documentation
 *.md
-!README.md
-SECURITY_ANALYSIS.md
-IMPROVEMENTS_SUMMARY.md
-IMPLEMENTATION_GUIDE.md
+!.dockerignore
 
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Build files
 build/
 dist/
 *.log
 
-# Test files
+src/**/*.test.ts
+src/**/*.spec.ts
 test/
 tests/
-*.test.js
-*.spec.js
+coverage/
 
-# CI/CD
-.github/
 .gitlab-ci.yml
 .travis.yml
 
-# Scripts (optional - keep if needed in container)
 build.sh
 build_stack.sh
 immich-album-downloader.sh
-

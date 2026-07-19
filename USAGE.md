@@ -286,38 +286,38 @@ IMMICH_CONCURRENCY=5
 IMMICH_MAX_RETRIES=3
 ```
 
-2. **Edit `docker-compose.yml`** with your settings (if needed):
+2. **Edit `docker/docker-compose.yml`** with your settings (if needed):
 
-The `docker-compose.yml` file uses environment variables from `.env` file, so you mainly need to configure the `.env` file.
+The `docker/docker-compose.yml` file uses environment variables from `.env` file, so you mainly need to configure the `.env` file.
 
 3. **Run with Docker Compose**:
 
 ```bash
 # Interactive mode (default)
-docker-compose up
+docker compose -f docker/docker-compose.yml up
 
 # Download all albums
-docker-compose run --rm immich-album-downloader --all
+docker compose -f docker/docker-compose.yml run --rm immich-album-downloader --all
 
 # Resume failed downloads
-docker-compose run --rm immich-album-downloader --resume-failed
+docker compose -f docker/docker-compose.yml run --rm immich-album-downloader --resume-failed
 
 # Dry run with verbose
-docker-compose run --rm immich-album-downloader --dry-run --verbose
+docker compose -f docker/docker-compose.yml run --rm immich-album-downloader --dry-run --verbose
 
 # Run in background
-docker-compose up -d
-docker-compose logs -f
+docker compose -f docker/docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml logs -f
 ```
 
-> 💡 **Tip:** Use `docker-compose run --rm` for one-time commands, or `docker-compose up` for interactive mode.
+> 💡 **Tip:** Use `docker compose -f docker/docker-compose.yml run --rm` for one-time commands, or `docker compose -f docker/docker-compose.yml up` for interactive mode.
 
 ### Option 3: Build Locally (Optional)
 
 If you want to build the image yourself instead of using the pre-built image:
 
 ```bash
-docker build -t ghcr.io/zckyachmd/immich-album-downloader:latest .
+docker build -f docker/Dockerfile -t ghcr.io/zckyachmd/immich-album-downloader:latest .
 ```
 
 > The image name matches the default used in the wrapper script for consistency.

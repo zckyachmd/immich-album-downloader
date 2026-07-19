@@ -1,0 +1,36 @@
+services:
+  immich-album-downloader:
+    image: ghcr.io/zckyachmd/immich-album-downloader:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: immich-album-downloader
+    restart: unless-stopped
+    environment:
+      IMMICH_BASE_URL: ${IMMICH_BASE_URL:-https://your-immich-server.com/api}
+      IMMICH_API_KEY: ${IMMICH_API_KEY:-your_api_key_here}
+      DEFAULT_OUTPUT: ${DEFAULT_OUTPUT:-/downloads}
+      IMMICH_CONCURRENCY: ${IMMICH_CONCURRENCY:-5}
+      IMMICH_MAX_RETRIES: ${IMMICH_MAX_RETRIES:-3}
+      IMMICH_DOWNLOAD_TIMEOUT: ${IMMICH_DOWNLOAD_TIMEOUT:-30000}
+      IMMICH_RATE_LIMIT_REQUESTS: ${IMMICH_RATE_LIMIT_REQUESTS:-100}
+      IMMICH_RATE_LIMIT_WINDOW_MS: ${IMMICH_RATE_LIMIT_WINDOW_MS:-60000}
+      IMMICH_SSL_VERIFY: ${IMMICH_SSL_VERIFY:-true}
+      NODE_ENV: ${NODE_ENV:-production}
+    volumes:
+      - ../downloads:/downloads
+      - ../media-cache:/app/media-cache
+    healthcheck:
+      test: ["CMD", "bun", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M

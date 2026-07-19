@@ -101,10 +101,10 @@ cp .env.example .env
 # Edit .env with your Immich server details
 
 # Run interactive mode
-docker-compose up
+docker compose -f docker/docker-compose.yml up
 
 # Or download all albums
-docker-compose run --rm immich-album-downloader --all
+docker compose -f docker/docker-compose.yml run --rm immich-album-downloader --all
 ```
 
 > 💡 **Tip:** Logs go to the console _and_ `media-cache/immich-album-downloader.log`. No surprises.
