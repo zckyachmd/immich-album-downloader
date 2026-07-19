@@ -4,20 +4,20 @@ Goal: make `immich-album-downloader` feel like production-grade interactive CLI 
 
 ## Desired behavior
 
-- [ ] Running `npx immich-album-downloader` with no config starts an interactive setup wizard.
-- [ ] Running with flags bypasses stored config for those values.
-- [ ] Running with existing `.env` uses it without prompting.
-- [ ] Missing required config prompts only when terminal is interactive.
-- [ ] Missing required config in non-interactive mode fails with clear error and examples.
-- [ ] Valid prompt result is tested against Immich before saving.
-- [ ] Valid prompt result can be saved to `.env`.
-- [ ] Existing `.env` is merged safely, not overwritten blindly.
-- [ ] `--reset-config` clears saved Immich config and starts setup again.
-- [ ] `--no-interactive` disables prompts.
+- [x] Running `npx immich-album-downloader` with no config starts an interactive setup wizard.
+- [x] Running with flags bypasses stored config for those values.
+- [x] Running with existing `.env` uses it without prompting.
+- [x] Missing required config prompts only when terminal is interactive.
+- [x] Missing required config in non-interactive mode fails with clear error and examples.
+- [x] Valid prompt result is tested against Immich before saving.
+- [x] Valid prompt result can be saved to `.env`.
+- [x] Existing `.env` is merged safely, not overwritten blindly.
+- [x] `--reset-config` clears saved Immich config and starts setup again.
+- [x] `--no-interactive` disables prompts.
 
 ## Config priority
 
-- [ ] Use priority order:
+- [x] Use priority order:
   1. CLI flags
   2. Existing `.env` / process env
   3. Interactive prompt
@@ -25,23 +25,23 @@ Goal: make `immich-album-downloader` feel like production-grade interactive CLI 
 
 ## New CLI flags
 
-- [ ] Add `--base-url <url>` for Immich base URL.
-- [ ] Add `--api-key <key>` for Immich API key.
-- [ ] Add `--no-interactive` to fail instead of prompt.
-- [ ] Add `--reset-config` to remove saved Immich config and prompt again.
-- [ ] Add `--save-config` if explicit save control is preferred.
-- [ ] Keep existing flags working:
-  - [ ] `--all`
-  - [ ] `--only`
-  - [ ] `--exclude`
-  - [ ] `--output`
-  - [ ] `--concurrency`
-  - [ ] `--max-retries`
-  - [ ] `--limit-size`
-  - [ ] `--dry-run`
-  - [ ] `--force`
-  - [ ] `--resume-failed`
-  - [ ] database maintenance flags
+- [x] Add `--base-url <url>` for Immich base URL.
+- [x] Add `--api-key <key>` for Immich API key.
+- [x] Add `--no-interactive` to fail instead of prompt.
+- [x] Add `--reset-config` to remove saved Immich config and prompt again.
+- [x] Add `--save-config` if explicit save control is preferred.
+- [x] Keep existing flags working:
+  - [x] `--all`
+  - [x] `--only`
+  - [x] `--exclude`
+  - [x] `--output`
+  - [x] `--concurrency`
+  - [x] `--max-retries`
+  - [x] `--limit-size`
+  - [x] `--dry-run`
+  - [x] `--force`
+  - [x] `--resume-failed`
+  - [x] database maintenance flags
 
 ## Target architecture
 
@@ -73,12 +73,12 @@ src/
 
 ## Phase 1: remove global config side effects
 
-- [ ] Replace `export const config = validateConfig()` in `src/lib/config.ts`.
-- [ ] Export config type, defaults, validators, and resolver functions instead.
-- [ ] Make importing `src/lib/config.ts` safe without env.
-- [ ] Move env validation from import time to runtime.
-- [ ] Remove hard dependency on `dotenv/config` from `src/app.ts`.
-- [ ] Load `.env` explicitly inside config resolution.
+- [x] Replace `export const config = validateConfig()` in `src/lib/config.ts`.
+- [x] Export config type, defaults, validators, and resolver functions instead.
+- [x] Make importing `src/lib/config.ts` safe without env.
+- [x] Move env validation from import time to runtime.
+- [x] Remove hard dependency on `dotenv/config` from `src/app.ts`.
+- [x] Load `.env` explicitly inside config resolution.
 
 Suggested API:
 
@@ -99,73 +99,73 @@ export async function resolveConfig(argv: CliArgs): Promise<AppConfig>;
 
 ## Phase 2: config file management
 
-- [ ] Create `src/cli/configFile.ts`.
-- [ ] Detect `.env` in current working directory.
-- [ ] Read existing `.env` if present.
-- [ ] Preserve unknown keys.
-- [ ] Merge only known Immich keys.
-- [ ] Write file atomically enough for CLI use.
-- [ ] Add reset helper for known keys.
-- [ ] Avoid logging API key.
+- [x] Create `src/cli/configFile.ts`.
+- [x] Detect `.env` in current working directory.
+- [x] Read existing `.env` if present.
+- [x] Preserve unknown keys.
+- [x] Merge only known Immich keys.
+- [x] Write file atomically enough for CLI use.
+- [x] Add reset helper for known keys.
+- [x] Avoid logging API key.
 
 Known keys:
 
-- [ ] `IMMICH_BASE_URL`
-- [ ] `IMMICH_API_KEY`
-- [ ] `DEFAULT_OUTPUT`
-- [ ] `IMMICH_SSL_VERIFY`
-- [ ] `IMMICH_CONCURRENCY`
-- [ ] `IMMICH_MAX_RETRIES`
-- [ ] `IMMICH_DOWNLOAD_TIMEOUT`
+- [x] `IMMICH_BASE_URL`
+- [x] `IMMICH_API_KEY`
+- [x] `DEFAULT_OUTPUT`
+- [x] `IMMICH_SSL_VERIFY`
+- [x] `IMMICH_CONCURRENCY`
+- [x] `IMMICH_MAX_RETRIES`
+- [x] `IMMICH_DOWNLOAD_TIMEOUT`
 
 Reset behavior options:
 
-- [ ] Minimal reset: remove known keys from `.env`, preserve file.
-- [ ] If `.env` only contains known keys, delete `.env`.
-- [ ] If user passes `--reset-config`, run reset then continue into wizard.
+- [x] Minimal reset: remove known keys from `.env`, preserve file.
+- [x] If `.env` only contains known keys, delete `.env`.
+- [x] If user passes `--reset-config`, run reset then continue into wizard.
 
 ## Phase 3: interactive wizard
 
-- [ ] Create `src/cli/prompts.ts`.
-- [ ] Prompt only when `process.stdin.isTTY` and `--no-interactive` is not set.
-- [ ] Ask for base URL.
-- [ ] Ask for API key as password input.
-- [ ] Ask for output directory.
-- [ ] Ask for concurrency.
-- [ ] Ask for max retries.
-- [ ] Ask whether to save config to `.env`.
-- [ ] Do local validation before health check.
-- [ ] Do health check before saving.
-- [ ] Re-prompt on invalid values.
+- [x] Create `src/cli/prompts.ts`.
+- [x] Prompt only when `process.stdin.isTTY` and `--no-interactive` is not set.
+- [x] Ask for base URL.
+- [x] Ask for API key as password input.
+- [x] Ask for output directory.
+- [x] Ask for concurrency.
+- [x] Ask for max retries.
+- [x] Ask whether to save config to `.env`.
+- [x] Do local validation before health check.
+- [x] Do health check before saving.
+- [x] Re-prompt on invalid values.
 
 Prompt defaults:
 
-- [ ] `DEFAULT_OUTPUT=./downloads`
-- [ ] `IMMICH_CONCURRENCY=5`
-- [ ] `IMMICH_MAX_RETRIES=3`
-- [ ] `IMMICH_DOWNLOAD_TIMEOUT=30000`
-- [ ] `IMMICH_SSL_VERIFY=true`
+- [x] `DEFAULT_OUTPUT=./downloads`
+- [x] `IMMICH_CONCURRENCY=5`
+- [x] `IMMICH_MAX_RETRIES=3`
+- [x] `IMMICH_DOWNLOAD_TIMEOUT=30000`
+- [x] `IMMICH_SSL_VERIFY=true`
 
 ## Phase 4: validation rules
 
-- [ ] `baseUrl` must be valid URL.
-- [ ] Normalize trailing slash.
-- [ ] Preserve `/api` if user includes it.
-- [ ] `apiKey` must be non-empty and long enough.
-- [ ] `concurrency` must be `1..50`.
-- [ ] `maxRetries` must be `0..10`.
-- [ ] `downloadTimeout` must be `5000..600000`.
-- [ ] `output` must be string path.
-- [ ] Never save config until health check passes.
+- [x] `baseUrl` must be valid URL.
+- [x] Normalize trailing slash.
+- [x] Preserve `/api` if user includes it.
+- [x] `apiKey` must be non-empty and long enough.
+- [x] `concurrency` must be `1..50`.
+- [x] `maxRetries` must be `0..10`.
+- [x] `downloadTimeout` must be `5000..600000`.
+- [x] `output` must be string path.
+- [x] Never save config until health check passes.
 
 ## Phase 5: inject config through app
 
-- [ ] Change `run(argv)` to resolve config first.
-- [ ] Pass config into `runDownloader(argv, config)`.
-- [ ] Pass config into `checkHealth(config)`.
-- [ ] Pass config into API calls or create API client.
-- [ ] Avoid module-level `const API_KEY = config.apiKey`.
-- [ ] Avoid module-level `const BASE_URL = config.baseUrl`.
+- [x] Change `run(argv)` to resolve config first.
+- [x] Pass config into `runDownloader(argv, config)`.
+- [x] Pass config into `checkHealth(config)`.
+- [x] Pass config into API calls or create API client.
+- [x] Avoid module-level `const API_KEY = config.apiKey`.
+- [x] Avoid module-level `const BASE_URL = config.baseUrl`.
 
 Preferred small step:
 
@@ -206,13 +206,13 @@ export function createImmichClient(config: AppConfig) {
 
 ## Phase 8: package readiness
 
-- [ ] Decide Bun-only or Node-compatible distribution.
-- [ ] If Bun-only, keep `#!/usr/bin/env bun` and document Bun requirement.
+- [x] Decide Bun-only or Node-compatible distribution.
+- [x] If Bun-only, keep `#!/usr/bin/env bun` and document Bun requirement.
 - [ ] If npm/npx production-grade, ship built `dist` files.
 - [ ] Point `bin` to built CLI entry.
 - [ ] Point `exports` to built library entry.
-- [ ] Include only needed files in package.
-- [ ] Add `prepublishOnly` or release build check.
+- [x] Include only needed files in package.
+- [x] Add `prepublishOnly` or release build check.
 
 Possible future package shape:
 
@@ -249,12 +249,12 @@ test/
     env.empty
 ```
 
-- [ ] Test import of config module without env does not throw.
+- [x] Test import of config module without env does not throw.
 - [x] Test missing config prompts in interactive mode.
-- [ ] Test missing config errors in non-interactive mode.
-- [ ] Test flags override `.env`.
-- [ ] Test reset removes known keys.
-- [ ] Test `.env` merge preserves unknown keys.
+- [x] Test missing config errors in non-interactive mode.
+- [x] Test flags override `.env`.
+- [x] Test reset removes known keys.
+- [x] Test `.env` merge preserves unknown keys.
 - [x] Test invalid prompt result is not saved.
 - [x] Test health check failure is not saved.
 - [x] Test DB commands do not need Immich config.
@@ -270,25 +270,25 @@ test/
 
 ## Recommended implementation order
 
-- [ ] 1. Make config import side-effect free.
-- [ ] 2. Add config resolver with argv/env/default priority.
-- [ ] 3. Add prompt flow for missing required config.
-- [ ] 4. Add `.env` read/write/reset helper.
-- [ ] 5. Validate with health check before saving.
-- [ ] 6. Inject config into health/API/downloader.
+- [x] 1. Make config import side-effect free.
+- [x] 2. Add config resolver with argv/env/default priority.
+- [x] 3. Add prompt flow for missing required config.
+- [x] 4. Add `.env` read/write/reset helper.
+- [x] 5. Validate with health check before saving.
+- [x] 6. Inject config into health/API/downloader.
 - [x] 7. Remove `process.exit` outside `main.ts`.
-- [ ] 8. Add tests for resolver and config file behavior.
+- [x] 8. Add remaining tests for resolver and config file behavior.
 - [ ] 9. Update package `bin`/build strategy.
 - [x] 10. Update README/USAGE after behavior stabilizes.
 
 ## Done criteria
 
-- [ ] `bun test` passes.
-- [ ] `bun run typecheck` passes.
-- [ ] Fresh clone with no `.env` starts wizard in TTY.
-- [ ] `--no-interactive` fails cleanly without `.env`.
-- [ ] `.env` writes only after successful validation and health check.
-- [ ] `--reset-config` resets saved config and re-prompts.
-- [ ] CLI flags override saved config.
-- [ ] DB commands work without Immich config.
-- [ ] No secret appears in logs.
+- [x] `bun test` passes.
+- [x] `bun run typecheck` passes.
+- [x] Fresh clone with no `.env` starts wizard in TTY.
+- [x] `--no-interactive` fails cleanly without `.env`.
+- [x] `.env` writes only after successful validation and health check.
+- [x] `--reset-config` resets saved config and re-prompts.
+- [x] CLI flags override saved config.
+- [x] DB commands work without Immich config.
+- [x] No secret appears in logs.

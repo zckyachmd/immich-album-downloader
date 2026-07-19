@@ -51,7 +51,7 @@ function firstDefined(...values) {
 export function validateConfig(input: Partial<AppConfig>): AppConfig {
   if (!input.apiKey) {
     throw new ConfigurationError(
-      "Missing IMMICH_API_KEY. Set --api-key, IMMICH_API_KEY, or run interactively to configure it."
+      "Missing IMMICH_API_KEY. Set --api-key, IMMICH_API_KEY, or run interactively to configure it. Example: immich-album-downloader --base-url https://immich.example.com --api-key your-api-key --all"
     );
   }
 
@@ -61,7 +61,7 @@ export function validateConfig(input: Partial<AppConfig>): AppConfig {
 
   if (!input.baseUrl) {
     throw new ConfigurationError(
-      "Missing IMMICH_BASE_URL. Set --base-url, IMMICH_BASE_URL, or run interactively to configure it."
+      "Missing IMMICH_BASE_URL. Set --base-url, IMMICH_BASE_URL, or run interactively to configure it. Example: immich-album-downloader --base-url https://immich.example.com --api-key your-api-key --all"
     );
   }
 
@@ -121,6 +121,7 @@ export async function resolveConfig(argv = {}, env = process.env): Promise<AppCo
     concurrency: firstDefined(args.concurrency, fromEnv.concurrency, defaults.concurrency),
     maxRetries: firstDefined(args.maxRetries, fromEnv.maxRetries, defaults.maxRetries),
     downloadTimeout: firstDefined(fromEnv.downloadTimeout, defaults.downloadTimeout),
+    saveConfig: argv["save-config"],
   };
 
   if ((!merged.apiKey || !merged.baseUrl) && process.stdin.isTTY && argv["interactive"] !== false) {
@@ -130,5 +131,7 @@ export async function resolveConfig(argv = {}, env = process.env): Promise<AppCo
     return config;
   }
 
-  return validateConfig(merged);
+  const config = validateConfig(merged);
+  config.saveConfig = merged.saveConfig;
+  return config;
 }

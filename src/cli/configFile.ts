@@ -25,6 +25,12 @@ const toLines = (config: AppConfig) => [
 
 const keyFromLine = (line: string) => line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/)?.[1];
 
+function writeFileAtomic(filePath: string, content: string) {
+  const tempPath = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, content);
+  fs.renameSync(tempPath, filePath);
+}
+
 export function resetEnvConfig(filePath = envPath()) {
   if (!fs.existsSync(filePath)) return;
 
@@ -39,7 +45,7 @@ export function resetEnvConfig(filePath = envPath()) {
     return;
   }
 
-  fs.writeFileSync(filePath, `${kept.join("\n").replace(/\n+$/, "")}\n`);
+  writeFileAtomic(filePath, `${kept.join("\n").replace(/\n+$/, "")}\n`);
 }
 
 export function writeEnvConfig(config: AppConfig, filePath = envPath()) {
@@ -49,5 +55,5 @@ export function writeEnvConfig(config: AppConfig, filePath = envPath()) {
     return !key || !knownKeys.has(key);
   });
   const content = [...kept.filter((line) => line.trim() !== ""), ...toLines(config)].join("\n");
-  fs.writeFileSync(filePath, `${content}\n`);
+  writeFileAtomic(filePath, `${content}\n`);
 }

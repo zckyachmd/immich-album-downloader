@@ -2,7 +2,7 @@
 
 **Your one-stop CLI tool for backing up Immich albums like a pro.**
 
-> Built with Node.js, powered by SQLite, and polished for the modern dev. Automate it, test it, or just vibe with it.
+> Built for Bun, powered by SQLite, and polished for the modern dev. Automate it, test it, or just vibe with it.
 
 ---
 
@@ -26,6 +26,8 @@ Here's what you're getting out of the box:
 ## 🚀 Quick Start
 
 ### 1. Clone and install
+
+Requires Bun 1.2+.
 
 ```bash
 git clone https://github.com/zckyachmd/immich-album-downloader.git
