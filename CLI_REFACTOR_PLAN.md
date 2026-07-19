@@ -185,14 +185,14 @@ export function createImmichClient(config: AppConfig) {
 
 ## Phase 6: process boundary cleanup
 
-- [ ] `src/main.ts` owns `process.exit`.
-- [ ] `app.run()` returns exit code.
-- [ ] `handleFatalError()` returns exit code or throws normalized error.
-- [ ] `databaseCommands.ts` stops calling `process.exit`.
-- [ ] `downloader.ts` stops calling `process.exit`.
-- [ ] Cancellation returns `130` from app boundary.
-- [ ] Validation failure returns `1`.
-- [ ] Success returns `0`.
+- [x] `src/main.ts` owns `process.exit`.
+- [x] `app.run()` returns exit code.
+- [x] `handleFatalError()` returns exit code or throws normalized error.
+- [x] `databaseCommands.ts` stops calling `process.exit`.
+- [x] `downloader.ts` stops calling `process.exit`.
+- [x] Cancellation returns `130` from app boundary.
+- [x] Validation failure returns `1`.
+- [x] Success returns `0`.
 
 ## Phase 7: database command behavior
 
@@ -276,7 +276,7 @@ test/
 - [ ] 4. Add `.env` read/write/reset helper.
 - [ ] 5. Validate with health check before saving.
 - [ ] 6. Inject config into health/API/downloader.
-- [ ] 7. Remove `process.exit` outside `main.ts`.
+- [x] 7. Remove `process.exit` outside `main.ts`.
 - [ ] 8. Add tests for resolver and config file behavior.
 - [ ] 9. Update package `bin`/build strategy.
 - [ ] 10. Update README/USAGE after behavior stabilizes.

@@ -2,7 +2,7 @@ import { parseArgs } from "@/cli/index";
 import { handleDatabaseCommand } from "@/cli/databaseCommands";
 import { databaseLoaded, loadDatabase, markDatabaseLoaded, runDownloader } from "@/core/downloader";
 import { resolveConfig } from "@/lib/config";
-import { ConfigurationError, ValidationError } from "@/lib/errors";
+import { CancellationError, ConfigurationError, ValidationError } from "@/lib/errors";
 import { logError } from "@/lib/logger";
 
 export const run = async (argv = parseArgs()) => {
@@ -22,7 +22,11 @@ export const run = async (argv = parseArgs()) => {
 };
 
 export const handleFatalError = async (err) => {
-  if (err instanceof ConfigurationError) {
+  let exitCode = 1;
+
+  if (err instanceof CancellationError) {
+    exitCode = 130;
+  } else if (err instanceof ConfigurationError) {
     logError(`💥 Configuration Error: ${err.message}`);
   } else if (err instanceof ValidationError) {
     logError(`💥 Validation Error: ${err.message}`);
@@ -42,7 +46,7 @@ export const handleFatalError = async (err) => {
     }
   }
 
-  return 1;
+  return exitCode;
 };
 
 export const closeDatabaseOnExit = () => {

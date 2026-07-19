@@ -26,6 +26,12 @@ export class ValidationError extends AppError {
   }
 }
 
+export class CancellationError extends AppError {
+  constructor(message = "Operation was cancelled") {
+    super(message, "CANCELLATION_ERROR", 130);
+  }
+}
+
 export class APIError extends AppError {
   endpoint: string | null;
 

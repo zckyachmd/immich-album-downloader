@@ -1,3 +1,5 @@
+import { CancellationError } from "@/lib/errors";
+
 class CancellationToken {
   cancelled: boolean;
   reason: string | null;
@@ -23,9 +25,7 @@ class CancellationToken {
 
   throwIfCancelled() {
     if (this.cancelled) {
-      const error = new Error(this.reason || "Operation was cancelled");
-      error.name = "CancellationError";
-      throw error;
+      throw new CancellationError(this.reason || "Operation was cancelled");
     }
   }
 
@@ -52,8 +52,7 @@ export function setupSignalHandlers() {
         })
         .catch(() => {});
 
-      process.exit(130);
-      return;
+      throw new CancellationError(`Interrupted by ${signal}`);
     }
 
     console.log(`\n\n⚠️  ${signal} received. Gracefully shutting down...`);

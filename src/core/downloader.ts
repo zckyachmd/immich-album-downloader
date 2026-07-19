@@ -4,7 +4,7 @@ import { writeEnvConfig } from "@/cli/configFile";
 import { getAlbums, getAssetsByAlbumId } from "@/lib/api";
 import { cancellationToken, setupSignalHandlers } from "@/lib/cancellation";
 import type { AppConfig } from "@/lib/config";
-import { ValidationError } from "@/lib/errors";
+import { CancellationError, ValidationError } from "@/lib/errors";
 import { expandPath } from "@/lib/helpers";
 import { checkHealth } from "@/lib/health";
 import { log, logError, logWarn } from "@/lib/logger";
@@ -118,12 +118,7 @@ export const runDownloader = async (options, config: AppConfig) => {
   log("📸 Immich Album Downloader\n");
   log("💡 Press Ctrl+C to cancel gracefully\n", "info");
 
-  try {
-    validateFlags(options);
-  } catch (err) {
-    logError(err.message);
-    process.exit(1);
-  }
+  validateFlags(options);
 
   const resolvedOutputDir = expandPath(options.output ?? config.defaultOutput);
   log(`📂 Output directory resolved: ${resolvedOutputDir}`, "info");
@@ -131,8 +126,7 @@ export const runDownloader = async (options, config: AppConfig) => {
   log("🔍 Checking connection to Immich server...");
   const isHealthy = await checkHealth(config);
   if (!isHealthy) {
-    logError("💥 Cannot proceed without a valid connection to Immich server.");
-    process.exit(1);
+    throw new ValidationError("💥 Cannot proceed without a valid connection to Immich server.");
   }
 
   if (config.saveConfig) writeEnvConfig(config);
@@ -223,7 +217,7 @@ export const runDownloader = async (options, config: AppConfig) => {
   if (cancellationToken.isCancelled()) {
     logWarn("\n⚠️  Download process was cancelled by user.");
     logWarn("💡 Progress has been saved. Use --resume-failed to continue where you left off.\n");
-    process.exit(130);
+    throw new CancellationError();
   }
 
   if (!options["dry-run"]) {
