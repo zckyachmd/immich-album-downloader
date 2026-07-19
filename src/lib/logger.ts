@@ -56,12 +56,24 @@ export const log = (message, level = "info", options = {}) => {
   const timestamp = new Date().toISOString();
   const levelUpper = level.toUpperCase();
 
-  const sanitize = (text) =>
-    sanitizeForLogging(text) // Apply sanitization
-      .toString()
-      .replace(/\s*\n\s*/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+  const sanitize = (text) => {
+    const input = sanitizeForLogging(text).toString();
+    let output = "";
+    let pendingSpace = false;
+
+    for (const char of input) {
+      if (char.trim() === "") {
+        pendingSpace = output.length > 0;
+        continue;
+      }
+
+      if (pendingSpace) output += " ";
+      output += char;
+      pendingSpace = false;
+    }
+
+    return output;
+  };
 
   const printToConsole = (text, level) => {
     const importantLevels = ["info", "warn", "error"];
