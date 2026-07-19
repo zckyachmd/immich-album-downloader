@@ -30,7 +30,7 @@ Here's what you're getting out of the box:
 ```bash
 git clone https://github.com/zckyachmd/immich-album-downloader.git
 cd immich-album-downloader
-npm install
+bun install
 ```
 
 ### 2. Set up your `.env`
@@ -67,8 +67,8 @@ Then edit `.env` with your configuration. The `.env.example` file contains all a
 **Local installation:**
 
 ```bash
-npm run download       # Interactive mode - select albums
-npm run download:all   # Download all albums (quick start)
+bun run download       # Interactive mode - select albums
+bun run download:all   # Download all albums (quick start)
 ```
 
 **Docker (using pre-built image from GitHub Container Registry):**
@@ -82,14 +82,14 @@ cp .env.example .env
 docker run --rm -it \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest
 
 # Or download all albums
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --all
 ```
 
@@ -101,13 +101,13 @@ cp .env.example .env
 # Edit .env with your Immich server details
 
 # Run interactive mode
-docker-compose up
+docker compose -f docker/docker-compose.yml up
 
 # Or download all albums
-docker-compose run --rm immich-album-downloader --all
+docker compose -f docker/docker-compose.yml run --rm immich-album-downloader --all
 ```
 
-> 💡 **Tip:** Logs go to the console _and_ `media-cache/immich-album-downloader.log`. No surprises.
+> 💡 **Tip:** Logs go to the console _and_ `data/immich-album-downloader.log`. No surprises.
 >
 > 💡 **Tip:** See [USAGE.md](./USAGE.md) for complete Docker usage guide including Docker Compose examples.
 >
@@ -151,19 +151,19 @@ All files are downloaded to folders that match your Immich album names — no we
 Run tests with:
 
 ```bash
-npm test
+bun test
 ```
 
 Run tests in watch mode:
 
 ```bash
-npm run test:watch
+bun run test:watch
 ```
 
 Generate coverage report:
 
 ```bash
-npm run test:coverage
+bun run test:coverage
 ```
 
 ---

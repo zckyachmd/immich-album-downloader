@@ -46,8 +46,8 @@ Related to #
 
 ```bash
 # Add test commands here
-npm test
-npm run format:check
+bun test
+bun run typecheck
 ```
 
 ## Checklist

@@ -8,22 +8,22 @@ Complete guide to using Immich Album Downloader.
 
 ### Quick Start
 
-**Using npm scripts (recommended):**
+**Using Bun scripts (recommended):**
 
 ```bash
-npm run download       # Interactive mode - select albums
-npm run download:all   # Download all albums
-npm run download:resume # Resume failed downloads
-npm run download:dry   # Preview without downloading
+bun run download       # Interactive mode - select albums
+bun run download:all   # Download all albums
+bun run download:resume # Resume failed downloads
+bun run download:dry   # Preview without downloading
 ```
 
 **Using node directly:**
 
 ```bash
-node main.js           # Interactive mode
-node main.js --all     # Download all albums (or use -a)
-node main.js -h        # Show all available options (or use --help)
-node main.js -V        # Show version (or use --version)
+bun src/main.ts           # Interactive mode
+bun src/main.ts --all     # Download all albums (or use -a)
+bun src/main.ts -h        # Show all available options (or use --help)
+bun src/main.ts -V        # Show version (or use --version)
 ```
 
 ---
@@ -32,49 +32,49 @@ node main.js -V        # Show version (or use --version)
 
 ### Main Scripts
 
-| Script                     | Command                        | Description                                           | Alias Equivalent  |
-| -------------------------- | ------------------------------ | ----------------------------------------------------- | ----------------- |
-| `npm run download`         | `node main.js`                 | Interactive mode - select albums from list            | -                 |
-| `npm run download:all`     | `node main.js --all`           | Download all albums without prompt                    | `node main.js -a` |
-| `npm run download:resume`  | `node main.js --resume-failed` | Resume previously failed downloads                    | `node main.js -R` |
-| `npm run download:dry`     | `node main.js --dry-run`       | Preview what would be downloaded (no actual download) | `node main.js -d` |
-| `npm run download:verbose` | `node main.js --verbose`       | Download with detailed logging                        | `node main.js -v` |
+| Script                     | Command                           | Description                                           | Alias Equivalent     |
+| -------------------------- | --------------------------------- | ----------------------------------------------------- | -------------------- |
+| `bun run download`         | `bun src/main.ts`                 | Interactive mode - select albums from list            | -                    |
+| `bun run download:all`     | `bun src/main.ts --all`           | Download all albums without prompt                    | `bun src/main.ts -a` |
+| `bun run download:resume`  | `bun src/main.ts --resume-failed` | Resume previously failed downloads                    | `bun src/main.ts -R` |
+| `bun run download:dry`     | `bun src/main.ts --dry-run`       | Preview what would be downloaded (no actual download) | `bun src/main.ts -d` |
+| `bun run download:verbose` | `bun src/main.ts --verbose`       | Download with detailed logging                        | `bun src/main.ts -v` |
 
 ### Test Scripts
 
-| Script                  | Command           | Description                   |
-| ----------------------- | ----------------- | ----------------------------- |
-| `npm test`              | `jest`            | Run tests                     |
-| `npm run test:watch`    | `jest --watch`    | Run tests in watch mode       |
-| `npm run test:coverage` | `jest --coverage` | Generate test coverage report |
+| Script                  | Command               | Description                   |
+| ----------------------- | --------------------- | ----------------------------- |
+| `bun test`              | `bun test`            | Run tests                     |
+| `bun run test:watch`    | `bun test --watch`    | Run tests in watch mode       |
+| `bun run test:coverage` | `bun test --coverage` | Generate test coverage report |
 
-### Examples with npm scripts:
+### Examples with Bun scripts:
 
 ```bash
 # Download all albums with verbose logging
-npm run download:all -- --verbose
+bun run download:all -- --verbose
 # or using alias
-npm run download:all -- -v
+bun run download:all -- -v
 
 # Resume failed downloads with custom output
-npm run download:resume -- --output ./backups
+bun run download:resume -- --output ./backups
 # or using alias
-npm run download:resume -- -o ./backups
+bun run download:resume -- -o ./backups
 
 # Preview download with specific album filter
-npm run download:dry -- --only "vacation"
+bun run download:dry -- --only "vacation"
 # or using alias
-npm run download:dry -- --only "vacation" -v
+bun run download:dry -- --only "vacation" -v
 ```
 
 > 💡 **Note:** Use `--` to pass additional arguments to package scripts.
 >
 > 💡 **Tip:** All package scripts support aliases. For example:
 >
-> - `npm run download:all` = `node main.js -a`
-> - `npm run download:resume` = `node main.js -R`
-> - `npm run download:dry` = `node main.js -d`
-> - `npm run download:verbose` = `node main.js -v`
+> - `bun run download:all` = `bun src/main.ts -a`
+> - `bun run download:resume` = `bun src/main.ts -R`
+> - `bun run download:dry` = `bun src/main.ts -d`
+> - `bun run download:verbose` = `bun src/main.ts -v`
 
 ---
 
@@ -100,7 +100,7 @@ npm run download:dry -- --only "vacation" -v
 
 | Option / Alias         | Type   | Description                                                                          | Default             | Example                                |
 | ---------------------- | ------ | ------------------------------------------------------------------------------------ | ------------------- | -------------------------------------- |
-| `-o`, `--output <dir>` | string | Custom output directory (overrides `DEFAULT_OUTPUT` env var)                         | `./media-downloads` | `-o ./backups` or `--output ./backups` |
+| `-o`, `--output <dir>` | string | Custom output directory (overrides `DEFAULT_OUTPUT` env var)                         | `./downloads` | `-o ./backups` or `--output ./backups` |
 | `-c`, `--concurrency`  | number | Number of concurrent downloads (overrides `IMMICH_CONCURRENCY` env var)              | `5`                 | `-c 10` or `--concurrency 10`          |
 | `-r`, `--max-retries`  | number | Maximum retry attempts for failed downloads (overrides `IMMICH_MAX_RETRIES` env var) | `3`                 | `-r 5` or `--max-retries 5`            |
 | `-l`, `--limit-size`   | number | Skip files larger than X MB                                                          | No limit            | `-l 200` or `--limit-size 200`         |
@@ -137,76 +137,76 @@ npm run download:dry -- --only "vacation" -v
 
 ```bash
 # Interactive mode - select albums from list
-node main.js
+bun src/main.ts
 
 # Download all albums
-node main.js --all
+bun src/main.ts --all
 # or using alias
-node main.js -a
+bun src/main.ts -a
 
 # Download specific album
-node main.js --only "vacation"
+bun src/main.ts --only "vacation"
 
 # Exclude certain albums
-node main.js --all --exclude "memes"
+bun src/main.ts --all --exclude "memes"
 # or using alias
-node main.js -a -e "memes"
+bun src/main.ts -a -e "memes"
 
 # Combine filters
-node main.js --only "vacation" --exclude "test"
+bun src/main.ts --only "vacation" --exclude "test"
 ```
 
 ### Advanced Examples
 
 ```bash
 # Download with custom settings (using long form)
-node main.js --all --concurrency 20 --output ./backups --verbose
+bun src/main.ts --all --concurrency 20 --output ./backups --verbose
 
 # Same command using aliases
-node main.js -a -c 20 -o ./backups -v
+bun src/main.ts -a -c 20 -o ./backups -v
 
 # Resume failed downloads
-node main.js --resume-failed
+bun src/main.ts --resume-failed
 # or using alias
-node main.js -R
+bun src/main.ts -R
 
 # Preview what would be downloaded
-node main.js --dry-run --verbose
+bun src/main.ts --dry-run --verbose
 # or using aliases
-node main.js -d -v
+bun src/main.ts -d -v
 
 # Download with size limit
-node main.js --all --limit-size 500
+bun src/main.ts --all --limit-size 500
 # or using aliases
-node main.js -a -l 500
+bun src/main.ts -a -l 500
 
 # Force re-download everything
-node main.js --all --force
+bun src/main.ts --all --force
 # or using aliases
-node main.js -a -f
+bun src/main.ts -a -f
 
 # Complex example with multiple aliases
-node main.js -a -c 10 -r 5 -o ./backups -v -l 200
+bun src/main.ts -a -c 10 -r 5 -o ./backups -v -l 200
 
 # Resume failed with verbose logging using aliases
-node main.js -R -v
+bun src/main.ts -R -v
 
 # Download all with dry-run using aliases
-node main.js -a -d -v
+bun src/main.ts -a -d -v
 ```
 
 ### Help and Version
 
 ```bash
 # Show help message
-node main.js --help
+bun src/main.ts --help
 # or using alias
-node main.js -h
+bun src/main.ts -h
 
 # Show version number
-node main.js --version
+bun src/main.ts --version
 # or using alias
-node main.js -V
+bun src/main.ts -V
 ```
 
 ---
@@ -236,35 +236,35 @@ IMMICH_MAX_RETRIES=3
 docker run --rm -it \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest
 
 # Download all albums
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --all
 
 # Resume failed downloads
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --resume-failed
 
 # Dry run with verbose
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --dry-run --verbose
 
 # Download specific album
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --only "vacation"
 ```
 
@@ -286,49 +286,39 @@ IMMICH_CONCURRENCY=5
 IMMICH_MAX_RETRIES=3
 ```
 
-2. **Edit `docker-compose.yml`** with your settings (if needed):
+2. **Edit `docker/docker-compose.yml`** with your settings (if needed):
 
-The `docker-compose.yml` file uses environment variables from `.env` file, so you mainly need to configure the `.env` file.
+The `docker/docker-compose.yml` file uses environment variables from `.env` file, so you mainly need to configure the `.env` file.
 
 3. **Run with Docker Compose**:
 
 ```bash
 # Interactive mode (default)
-docker-compose up
+docker compose -f docker/docker-compose.yml up
 
 # Download all albums
-docker-compose run --rm immich-album-downloader --all
+docker compose -f docker/docker-compose.yml run --rm immich-album-downloader --all
 
 # Resume failed downloads
-docker-compose run --rm immich-album-downloader --resume-failed
+docker compose -f docker/docker-compose.yml run --rm immich-album-downloader --resume-failed
 
 # Dry run with verbose
-docker-compose run --rm immich-album-downloader --dry-run --verbose
+docker compose -f docker/docker-compose.yml run --rm immich-album-downloader --dry-run --verbose
 
 # Run in background
-docker-compose up -d
-docker-compose logs -f
+docker compose -f docker/docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml logs -f
 ```
 
-> 💡 **Tip:** Use `docker-compose run --rm` for one-time commands, or `docker-compose up` for interactive mode.
+> 💡 **Tip:** Use `docker compose -f docker/docker-compose.yml run --rm` for one-time commands, or `docker compose -f docker/docker-compose.yml up` for interactive mode.
 
 ### Option 3: Build Locally (Optional)
 
 If you want to build the image yourself instead of using the pre-built image:
 
 ```bash
-docker build -t ghcr.io/zckyachmd/immich-album-downloader:latest .
+docker build -f docker/Dockerfile -t ghcr.io/zckyachmd/immich-album-downloader:latest .
 ```
-
-> The image name matches the default used in the wrapper script for consistency.
-
-### Option 4: Use the Provided Wrapper Script
-
-```bash
-./immich-album-downloader.sh --all
-```
-
-> This script automatically loads `.env` and forwards all arguments to the Docker container.
 
 ---
 
@@ -340,19 +330,19 @@ The tool uses SQLite to track downloaded files. You can manage the database with
 
 ```bash
 # Create a backup of the database
-node main.js --backup-db ./backups/
+bun src/main.ts --backup-db ./backups/
 
 # List all available backups
-node main.js --list-backups
+bun src/main.ts --list-backups
 
 # Restore from a backup
-node main.js --restore-db ./backups/downloads.db.backup.2024-01-01
+bun src/main.ts --restore-db ./backups/downloads.db.backup.2024-01-01
 
 # Clean up old failed records (older than 90 days)
-node main.js --cleanup-db 90
+bun src/main.ts --cleanup-db 90
 
 # Clean up all old records (not just failed)
-node main.js --cleanup-db 30 --cleanup-db-all
+bun src/main.ts --cleanup-db 30 --cleanup-db-all
 ```
 
 ### Environment Variables
@@ -394,7 +384,7 @@ IMMICH_SSL_VERIFY=false
 - Check your `IMMICH_BASE_URL` includes `/api` if needed
 - Verify your API key is correct
 - Check network connectivity
-- Review logs in `media-cache/immich-album-downloader.log`
+- Review logs in `data/immich-album-downloader.log`
 
 **Problem:** Files are being re-downloaded
 
@@ -416,8 +406,8 @@ IMMICH_SSL_VERIFY=false
 
 ## 📝 Notes
 
-- Logs are written to both console and `media-cache/immich-album-downloader.log`
-- The database is stored in `media-cache/downloads.db`
+- Logs are written to both console and `data/immich-album-downloader.log`
+- The database is stored in `data/downloads.db`
 - Downloaded files maintain the Immich album folder structure
 - Files are verified with checksums before being marked as downloaded
 - Failed downloads can be resumed with `--resume-failed`
