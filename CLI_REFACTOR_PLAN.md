@@ -261,12 +261,12 @@ test/
 
 ## Phase 10: migration notes
 
-- [ ] Existing `.env` users continue working.
-- [ ] Existing env var names continue working.
-- [ ] Existing download scripts continue working.
-- [ ] First-run user gets guided setup.
-- [ ] Non-interactive CI gets deterministic error.
-- [ ] API key never printed.
+- [x] Existing `.env` users continue working.
+- [x] Existing env var names continue working.
+- [x] Existing download scripts continue working.
+- [x] First-run user gets guided setup.
+- [x] Non-interactive CI gets deterministic error.
+- [x] API key never printed.
 
 ## Recommended implementation order
 
@@ -279,7 +279,7 @@ test/
 - [x] 7. Remove `process.exit` outside `main.ts`.
 - [ ] 8. Add tests for resolver and config file behavior.
 - [ ] 9. Update package `bin`/build strategy.
-- [ ] 10. Update README/USAGE after behavior stabilizes.
+- [x] 10. Update README/USAGE after behavior stabilizes.
 
 ## Done criteria
 

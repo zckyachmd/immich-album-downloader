@@ -98,12 +98,16 @@ bun run download:dry -- --only "vacation" -v
 
 ### Output & Configuration
 
-| Option / Alias         | Type   | Description                                                                          | Default             | Example                                |
-| ---------------------- | ------ | ------------------------------------------------------------------------------------ | ------------------- | -------------------------------------- |
-| `-o`, `--output <dir>` | string | Custom output directory (overrides `DEFAULT_OUTPUT` env var)                         | `./downloads` | `-o ./backups` or `--output ./backups` |
-| `-c`, `--concurrency`  | number | Number of concurrent downloads (overrides `IMMICH_CONCURRENCY` env var)              | `5`                 | `-c 10` or `--concurrency 10`          |
-| `-r`, `--max-retries`  | number | Maximum retry attempts for failed downloads (overrides `IMMICH_MAX_RETRIES` env var) | `3`                 | `-r 5` or `--max-retries 5`            |
-| `-l`, `--limit-size`   | number | Skip files larger than X MB                                                          | No limit            | `-l 200` or `--limit-size 200`         |
+| Option / Alias              | Type    | Description                                                                          | Default       | Example                                |
+| --------------------------- | ------- | ------------------------------------------------------------------------------------ | ------------- | -------------------------------------- |
+| `--base-url <url>`          | string  | Immich server URL (overrides `IMMICH_BASE_URL`)                                      | -             | `--base-url https://immich.example`    |
+| `--api-key <key>`           | string  | Immich API key (overrides `IMMICH_API_KEY`)                                          | -             | `--api-key $IMMICH_API_KEY`            |
+| `--no-interactive`          | boolean | Disable setup prompts and fail cleanly if required config is missing                 | `false`       | `--no-interactive`                     |
+| `--reset-config`            | boolean | Remove saved Immich config keys from `.env`, then continue setup                     | `false`       | `--reset-config`                       |
+| `-o`, `--output <dir>`      | string  | Custom output directory (overrides `DEFAULT_OUTPUT` env var)                         | `./downloads` | `-o ./backups` or `--output ./backups` |
+| `-c`, `--concurrency`       | number  | Number of concurrent downloads (overrides `IMMICH_CONCURRENCY` env var)              | `5`           | `-c 10` or `--concurrency 10`          |
+| `-r`, `--max-retries`       | number  | Maximum retry attempts for failed downloads (overrides `IMMICH_MAX_RETRIES` env var) | `3`           | `-r 5` or `--max-retries 5`            |
+| `-l`, `--limit-size`        | number  | Skip files larger than X MB                                                          | No limit      | `-l 200` or `--limit-size 200`         |
 
 ### Database Management
 
@@ -126,8 +130,11 @@ bun run download:dry -- --only "vacation" -v
 ### Configuration Priority
 
 1. **CLI arguments** (highest priority) - e.g., `--concurrency 10`
-2. **Environment variables** (`.env` file) - e.g., `IMMICH_CONCURRENCY=5`
-3. **Default values** (lowest priority) - e.g., `5` for concurrency
+2. **Environment variables** (`.env` file or process env) - e.g., `IMMICH_CONCURRENCY=5`
+3. **Interactive prompt** for missing required config in TTY sessions
+4. **Default values** for optional settings - e.g., `5` for concurrency
+
+Use `--no-interactive` in CI for deterministic failures when required config is missing.
 
 ---
 

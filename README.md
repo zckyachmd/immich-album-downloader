@@ -33,15 +33,15 @@ cd immich-album-downloader
 bun install
 ```
 
-### 2. Set up your `.env`
+### 2. Set up configuration
 
-Copy the example file and fill in your values:
+Run without `.env` in an interactive terminal to start the setup wizard, or copy the example file and fill in your values:
 
 ```bash
 cp .env.example .env
 ```
 
-Then edit `.env` with your configuration. The `.env.example` file contains all available options with detailed comments.
+Existing `.env` files and env var names continue working. CLI flags override saved config for that run.
 
 **Required configuration:**
 
@@ -58,7 +58,7 @@ Then edit `.env` with your configuration. The `.env.example` file contains all a
 - `IMMICH_RATE_LIMIT_WINDOW_MS` - Rate limit time window in milliseconds
 - `IMMICH_SSL_VERIFY` - SSL verification (set to `false` for self-signed certs)
 
-> 💡 **Tip:** CLI arguments always override `.env` values. Priority: CLI > `.env` > defaults
+> 💡 **Tip:** Priority: CLI flags > `.env` / process env > interactive prompt > optional defaults. API keys are never printed.
 >
 > 📝 **See `.env.example` for complete documentation of all configuration options.**
 
