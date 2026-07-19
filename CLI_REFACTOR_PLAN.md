@@ -196,13 +196,13 @@ export function createImmichClient(config: AppConfig) {
 
 ## Phase 7: database command behavior
 
-- [ ] DB maintenance commands still bypass downloader flow.
-- [ ] DB commands do not require Immich API config.
-- [ ] DB commands can run without `.env`.
-- [ ] `--cleanup-db` validates numeric range.
-- [ ] `--backup-db` handles directory path.
-- [ ] `--restore-db` keeps warning before destructive action.
-- [ ] `--list-backups` returns success exit code.
+- [x] DB maintenance commands still bypass downloader flow.
+- [x] DB commands do not require Immich API config.
+- [x] DB commands can run without `.env`.
+- [x] `--cleanup-db` validates numeric range.
+- [x] `--backup-db` handles directory path.
+- [x] `--restore-db` keeps warning before destructive action.
+- [x] `--list-backups` returns success exit code.
 
 ## Phase 8: package readiness
 
@@ -250,14 +250,14 @@ test/
 ```
 
 - [ ] Test import of config module without env does not throw.
-- [ ] Test missing config prompts in interactive mode.
+- [x] Test missing config prompts in interactive mode.
 - [ ] Test missing config errors in non-interactive mode.
 - [ ] Test flags override `.env`.
 - [ ] Test reset removes known keys.
 - [ ] Test `.env` merge preserves unknown keys.
-- [ ] Test invalid prompt result is not saved.
-- [ ] Test health check failure is not saved.
-- [ ] Test DB commands do not need Immich config.
+- [x] Test invalid prompt result is not saved.
+- [x] Test health check failure is not saved.
+- [x] Test DB commands do not need Immich config.
 
 ## Phase 10: migration notes
 
