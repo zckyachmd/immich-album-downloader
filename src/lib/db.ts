@@ -6,7 +6,7 @@ import { expandPath } from "./helpers";
 import { DatabaseError } from "./errors";
 import { logError, logWarn } from "./logger";
 
-const dbDir = expandPath("media-cache");
+const dbDir = expandPath("data");
 const dbPath = path.join(dbDir, "downloads.db");
 
 // Initialize database directory

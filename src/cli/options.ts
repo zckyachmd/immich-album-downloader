@@ -38,7 +38,7 @@ export const commonOptions = {
   },
   output: {
     type: "string",
-    describe: "Custom output directory (default: ./media-downloads)",
+    describe: "Custom output directory (default: ./downloads)",
     alias: "o",
   },
   force: {

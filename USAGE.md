@@ -100,7 +100,7 @@ bun run download:dry -- --only "vacation" -v
 
 | Option / Alias         | Type   | Description                                                                          | Default             | Example                                |
 | ---------------------- | ------ | ------------------------------------------------------------------------------------ | ------------------- | -------------------------------------- |
-| `-o`, `--output <dir>` | string | Custom output directory (overrides `DEFAULT_OUTPUT` env var)                         | `./media-downloads` | `-o ./backups` or `--output ./backups` |
+| `-o`, `--output <dir>` | string | Custom output directory (overrides `DEFAULT_OUTPUT` env var)                         | `./downloads` | `-o ./backups` or `--output ./backups` |
 | `-c`, `--concurrency`  | number | Number of concurrent downloads (overrides `IMMICH_CONCURRENCY` env var)              | `5`                 | `-c 10` or `--concurrency 10`          |
 | `-r`, `--max-retries`  | number | Maximum retry attempts for failed downloads (overrides `IMMICH_MAX_RETRIES` env var) | `3`                 | `-r 5` or `--max-retries 5`            |
 | `-l`, `--limit-size`   | number | Skip files larger than X MB                                                          | No limit            | `-l 200` or `--limit-size 200`         |
@@ -236,35 +236,35 @@ IMMICH_MAX_RETRIES=3
 docker run --rm -it \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest
 
 # Download all albums
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --all
 
 # Resume failed downloads
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --resume-failed
 
 # Dry run with verbose
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --dry-run --verbose
 
 # Download specific album
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --only "vacation"
 ```
 
@@ -394,7 +394,7 @@ IMMICH_SSL_VERIFY=false
 - Check your `IMMICH_BASE_URL` includes `/api` if needed
 - Verify your API key is correct
 - Check network connectivity
-- Review logs in `media-cache/immich-album-downloader.log`
+- Review logs in `data/immich-album-downloader.log`
 
 **Problem:** Files are being re-downloaded
 
@@ -416,8 +416,8 @@ IMMICH_SSL_VERIFY=false
 
 ## 📝 Notes
 
-- Logs are written to both console and `media-cache/immich-album-downloader.log`
-- The database is stored in `media-cache/downloads.db`
+- Logs are written to both console and `data/immich-album-downloader.log`
+- The database is stored in `data/downloads.db`
 - Downloaded files maintain the Immich album folder structure
 - Files are verified with checksums before being marked as downloaded
 - Failed downloads can be resumed with `--resume-failed`

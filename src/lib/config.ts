@@ -98,7 +98,7 @@ function validateConfig() {
   return {
     apiKey: process.env.IMMICH_API_KEY,
     baseUrl: normalizedBaseUrl,
-    defaultOutput: process.env.DEFAULT_OUTPUT || "./media-downloads",
+    defaultOutput: process.env.DEFAULT_OUTPUT || "./downloads",
     sslVerify: sslVerify,
     concurrency: concurrency,
     maxRetries: maxRetries,

@@ -10,9 +10,8 @@ node_modules/
 Thumbs.db
 
 # application files
-media-downloads/
-media-cache/
 downloads/
+data/
 test-dir/
 *.db
 *.db-shm

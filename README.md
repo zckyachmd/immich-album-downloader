@@ -82,14 +82,14 @@ cp .env.example .env
 docker run --rm -it \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest
 
 # Or download all albums
 docker run --rm \
   --env-file .env \
   -v "$(pwd)/downloads:/downloads" \
-  -v "$(pwd)/media-cache:/app/media-cache" \
+  -v "$(pwd)/data:/app/data" \
   ghcr.io/zckyachmd/immich-album-downloader:latest --all
 ```
 
@@ -107,7 +107,7 @@ docker compose -f docker/docker-compose.yml up
 docker compose -f docker/docker-compose.yml run --rm immich-album-downloader --all
 ```
 
-> 💡 **Tip:** Logs go to the console _and_ `media-cache/immich-album-downloader.log`. No surprises.
+> 💡 **Tip:** Logs go to the console _and_ `data/immich-album-downloader.log`. No surprises.
 >
 > 💡 **Tip:** See [USAGE.md](./USAGE.md) for complete Docker usage guide including Docker Compose examples.
 >

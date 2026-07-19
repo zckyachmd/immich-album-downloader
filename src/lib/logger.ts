@@ -4,7 +4,7 @@ import path from "path";
 import readline from "readline";
 import { expandPath, formatFileSize, formatDuration } from "./helpers";
 
-const LOG_DIR = expandPath("media-cache");
+const LOG_DIR = expandPath("data");
 const LOG_PATH = path.join(LOG_DIR, "immich-album-downloader.log");
 
 let isVerbose = false;

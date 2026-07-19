@@ -4,9 +4,8 @@ node_modules/
 .env.local
 .env.*.local
 
-media-downloads/
-media-cache/
 downloads/
+data/
 test-dir/
 
 .git/
