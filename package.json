@@ -3,6 +3,9 @@
   "version": "1.0.6",
   "packageManager": "bun@1.2.21",
   "type": "module",
+  "bin": {
+    "immich-album-downloader": "./src/main.ts"
+  },
   "scripts": {
     "download": "bun run src/main.ts",
     "download:all": "bun run src/main.ts --all",
@@ -16,14 +19,12 @@
     "test:watch": "IMMICH_API_KEY=test-api-key-1234567890 IMMICH_BASE_URL=https://example.com bun test --watch --isolate"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
     "dotenv": "^16.6.1",
     "inquirer": "^9.3.8",
     "p-limit": "^4.0.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/bun": "latest",
     "@types/yargs": "^17.0.33",
     "prettier": "^3.7.4",

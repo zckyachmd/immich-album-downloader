@@ -1,7 +1,7 @@
 // @ts-nocheck
 import fs from "fs";
 import path from "path";
-import Database from "better-sqlite3";
+import { Database } from "bun:sqlite";
 import { expandPath } from "./helpers";
 import { DatabaseError } from "./errors";
 import { logError, logWarn } from "./logger";
@@ -22,8 +22,8 @@ if (!fs.existsSync(dbDir)) {
 let db;
 try {
   db = new Database(dbPath);
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON"); // Enable foreign key constraints
+  db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA foreign_keys = ON"); // Enable foreign key constraints
 
   // Set secure permissions on database file (rw-------)
   try {

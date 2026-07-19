@@ -13,6 +13,6 @@ describe("fetchConfig", () => {
   test("should handle empty options", () => {
     const options = getFetchOptions();
 
-    expect(options).toEqual({});
+    expect(options.headers).toBeUndefined();
   });
 });

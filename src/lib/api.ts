@@ -58,13 +58,13 @@ export async function getAlbums() {
  * @throws {ValidationError} If response format is invalid
  */
 export async function getAssetsByAlbumId(albumId) {
-  await rateLimiter.waitIfNeeded();
+  const apiBase = BASE_URL.endsWith("/api") ? BASE_URL : `${BASE_URL}/api`;
 
   try {
-    // Normalize URL - ensure /api prefix
-    const apiBase = BASE_URL.endsWith("/api") ? BASE_URL : `${BASE_URL}/api`;
-    const res = await fetch(
-      `${apiBase}/albums/${albumId}`,
+    await rateLimiter.waitIfNeeded();
+
+    const albumRes = await fetch(
+      `${apiBase}/albums/${albumId}?withoutAssets=false`,
       getFetchOptions({
         headers: {
           Accept: "application/json",
@@ -73,56 +73,81 @@ export async function getAssetsByAlbumId(albumId) {
       })
     );
 
-    if (!res.ok) {
+    if (!albumRes.ok) {
       throw new APIError(
-        `Failed to fetch album ${albumId}: ${res.status} ${res.statusText}`,
-        res.status,
+        `Failed to fetch album ${albumId}: ${albumRes.status} ${albumRes.statusText}`,
+        albumRes.status,
         `/api/albums/${albumId}`
       );
     }
 
-    const album = await res.json();
+    const album = await albumRes.json();
+    if (Array.isArray(album?.assets)) return album.assets;
+    if (Array.isArray(album?.assetList)) return album.assetList;
+    if (Array.isArray(album?.items)) return album.items;
+    if (Array.isArray(album)) return album;
 
-    // Validate response structure
-    if (!album || typeof album !== "object") {
-      throw new APIError(
-        `Invalid response format for album ${albumId}`,
-        500,
-        `/api/albums/${albumId}`
-      );
-    }
-
-    // Try to find assets array in different possible locations
-    let assets = null;
-
-    if (Array.isArray(album.assets)) {
-      assets = album.assets;
-    } else if (Array.isArray(album.assetList)) {
-      assets = album.assetList;
-    } else if (Array.isArray(album.items)) {
-      assets = album.items;
-    } else if (Array.isArray(album)) {
-      // If response is directly an array, it might be the assets
-      assets = album;
-    }
-
-    if (!assets || !Array.isArray(assets)) {
-      logError("💥 Unexpected asset response structure", { verbose: true });
-      logError(`Response keys: ${Object.keys(album).join(", ")}`, { verbose: true });
-      throw new APIError(
-        `Assets not found in response for album ${albumId}. Response structure may have changed.`,
-        500,
-        `/api/albums/${albumId}`
-      );
-    }
-
-    return assets;
+    return await searchAssetsByAlbumId(apiBase, albumId, album?.assetCount);
   } catch (err) {
     if (err instanceof APIError) {
       throw err;
     }
     throw new NetworkError(`Network error while fetching album assets: ${err.message}`, err);
   }
+}
+
+async function searchAssetsByAlbumId(apiBase, albumId, expectedCount) {
+  const assets = [];
+  const pageSize = 1000;
+  let page = 1;
+
+  while (true) {
+    await rateLimiter.waitIfNeeded();
+
+    const res = await fetch(
+      `${apiBase}/search/metadata`,
+      getFetchOptions({
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+        },
+        body: JSON.stringify({ albumIds: [albumId], page, size: pageSize, withExif: true }),
+      })
+    );
+
+    if (!res.ok) {
+      throw new APIError(
+        `Failed to search album ${albumId} assets: ${res.status} ${res.statusText}`,
+        res.status,
+        `/api/search/metadata`
+      );
+    }
+
+    const data = await res.json();
+    const items = data?.assets?.items ?? data?.items ?? data?.assets ?? data;
+
+    if (!Array.isArray(items)) {
+      logError("💥 Unexpected asset search response structure", { verbose: true });
+      logError(`Response keys: ${Object.keys(data ?? {}).join(", ")}`, { verbose: true });
+      throw new APIError(
+        `Assets not found in search response for album ${albumId}. Response structure may have changed.`,
+        500,
+        `/api/search/metadata`
+      );
+    }
+
+    assets.push(...items);
+
+    const total = data?.assets?.total ?? data?.total ?? expectedCount;
+    const nextPage = data?.assets?.nextPage ?? data?.nextPage;
+    if (!nextPage && (items.length < pageSize || (total && assets.length >= total))) break;
+
+    page = Number(nextPage ?? page + 1);
+  }
+
+  return assets;
 }
 
 /**

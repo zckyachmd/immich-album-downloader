@@ -61,10 +61,35 @@ describe("Immich API client", () => {
 
     await expect(getAssetsByAlbumId("album-1")).resolves.toEqual(assets);
 
-    expect(fetchMock.mock.calls[0][0]).toBe("https://example.com/api/albums/album-1");
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "https://example.com/api/albums/album-1?withoutAssets=false"
+    );
     expect(fetchMock.mock.calls[0][1].headers).toEqual({
       Accept: "application/json",
       "x-api-key": apiKey,
+    });
+  });
+
+  test("falls back to POST /api/search/metadata when album omits assets", async () => {
+    const assets = [{ id: "asset-1", originalFileName: "IMG_0001.jpg" }];
+    const fetchMock = mock((url: string) => {
+      if (url.endsWith("/api/albums/album-1?withoutAssets=false")) {
+        return Promise.resolve(jsonResponse({ id: "album-1", assetCount: 1 }));
+      }
+
+      return Promise.resolve(jsonResponse({ assets: { total: 1, count: 1, items: assets } }));
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(getAssetsByAlbumId("album-1")).resolves.toEqual(assets);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][0]).toBe("https://example.com/api/search/metadata");
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({
+      albumIds: ["album-1"],
+      page: 1,
+      size: 1000,
+      withExif: true,
     });
   });
 
