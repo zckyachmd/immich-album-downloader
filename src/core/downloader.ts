@@ -1,12 +1,12 @@
 // @ts-nocheck
 import inquirer from "inquirer";
-import { getAlbums, getAssetsByAlbumId } from "../lib/api.js";
-import { expandPath } from "../lib/helpers";
-import { log, logError, logWarn } from "../lib/logger.js";
-import { config } from "../lib/config.js";
-import { checkHealth } from "../lib/health.js";
-import { ValidationError } from "../lib/errors.js";
-import { setupSignalHandlers, cancellationToken } from "../lib/cancellation.js";
+import { getAlbums, getAssetsByAlbumId } from "@/lib/api";
+import { cancellationToken, setupSignalHandlers } from "@/lib/cancellation";
+import type { AppConfig } from "@/lib/config";
+import { ValidationError } from "@/lib/errors";
+import { expandPath } from "@/lib/helpers";
+import { checkHealth } from "@/lib/health";
+import { log, logError, logWarn } from "@/lib/logger";
 
 export let databaseLoaded = false;
 
@@ -109,7 +109,7 @@ const selectTargets = async (options, albums) => {
   return selectedAlbums;
 };
 
-export const runDownloader = async (options) => {
+export const runDownloader = async (options, config: AppConfig) => {
   if (options["dry-run"]) options.verbose = true;
 
   setupSignalHandlers();
@@ -128,7 +128,7 @@ export const runDownloader = async (options) => {
   log(`📂 Output directory resolved: ${resolvedOutputDir}`, "info");
 
   log("🔍 Checking connection to Immich server...");
-  const isHealthy = await checkHealth();
+  const isHealthy = await checkHealth(config);
   if (!isHealthy) {
     logError("💥 Cannot proceed without a valid connection to Immich server.");
     process.exit(1);
@@ -144,7 +144,7 @@ export const runDownloader = async (options) => {
   log(`-- Output directory: ${resolvedOutputDir}${options.output ? " (CLI)" : " (from .env)"}`);
   if (options.force) log(`-- Override existing files: enabled`);
 
-  const albums = await getAlbums();
+  const albums = await getAlbums(config);
   if (!albums.length) {
     logWarn("🚫 No albums found.");
     return;
@@ -170,7 +170,7 @@ export const runDownloader = async (options) => {
     );
 
     try {
-      const assets = await getAssetsByAlbumId(album.id);
+      const assets = await getAssetsByAlbumId(config, album.id);
       if (!assets.length) {
         logWarn(`🚫 Album "${album.albumName}" empty, skip.`);
         continue;
@@ -201,6 +201,7 @@ export const runDownloader = async (options) => {
         maxRetries: maxRetries,
         concurrencyLimit: concurrency,
         limitSize: options["limit-size"],
+        config,
       });
     } catch (err) {
       if (err.name === "CancellationError" || cancellationToken.isCancelled()) {

@@ -1,5 +1,19 @@
 import { afterEach, describe, expect, test, mock } from "bun:test";
-import { checkHealth } from "../../src/lib/health";
+import { checkHealth } from "@/lib/health";
+
+const testConfig = {
+  apiKey: "test-api-key-1234567890",
+  baseUrl: "https://example.com",
+  defaultOutput: "./downloads",
+  sslVerify: true,
+  concurrency: 5,
+  maxRetries: 3,
+  downloadTimeout: 30000,
+};
+const endpoints = {
+  serverAbout: "https://example.com/api/server/about",
+  albums: "https://example.com/api/albums",
+};
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -19,10 +33,10 @@ describe("Immich health check", () => {
     );
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    await expect(checkHealth()).resolves.toBe(true);
+    await expect(checkHealth(testConfig)).resolves.toBe(true);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0][0]).toBe("https://example.com/api/server/about");
+    expect(fetchMock.mock.calls[0][0]).toBe(endpoints.serverAbout);
     expect(fetchMock.mock.calls[0][1].headers).toEqual({
       "x-api-key": "test-api-key-1234567890",
       Accept: "application/json",
@@ -31,18 +45,22 @@ describe("Immich health check", () => {
 
   test("falls back to GET /api/albums when server/about fails", async () => {
     const fetchMock = mock((url: string) => {
-      if (url.endsWith("/server/about")) {
+      if (url === endpoints.serverAbout) {
         return Promise.resolve(jsonResponse({ message: "Not Found" }, 404));
       }
-      return Promise.resolve(jsonResponse([]));
+      if (url === endpoints.albums) {
+        return Promise.resolve(jsonResponse([]));
+      }
+
+      return Promise.reject(new Error(`Unexpected endpoint: ${url}`));
     });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    await expect(checkHealth()).resolves.toBe(true);
+    await expect(checkHealth(testConfig)).resolves.toBe(true);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][0]).toBe("https://example.com/api/server/about");
-    expect(fetchMock.mock.calls[1][0]).toBe("https://example.com/api/albums");
+    expect(fetchMock.mock.calls[0][0]).toBe(endpoints.serverAbout);
+    expect(fetchMock.mock.calls[1][0]).toBe(endpoints.albums);
   });
 
   test("returns false on authentication failure", async () => {
@@ -50,6 +68,6 @@ describe("Immich health check", () => {
       Promise.resolve(jsonResponse({ message: "Unauthorized" }, 401))
     ) as unknown as typeof fetch;
 
-    await expect(checkHealth()).resolves.toBe(false);
+    await expect(checkHealth(testConfig)).resolves.toBe(false);
   });
 });

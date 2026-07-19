@@ -1,4 +1,4 @@
-import { config } from "./config";
+import type { AppConfig } from "./config";
 import { log, logError } from "./logger";
 import { getFetchOptions } from "./fetchConfig";
 
@@ -6,7 +6,7 @@ import { getFetchOptions } from "./fetchConfig";
  * Checks if the Immich API is accessible and credentials are valid
  * @returns {Promise<boolean>} True if healthy, false otherwise
  */
-export async function checkHealth() {
+export async function checkHealth(config: AppConfig) {
   try {
     // Normalize base URL - ensure we have /api prefix
     const apiBase = config.baseUrl.endsWith("/api") ? config.baseUrl : `${config.baseUrl}/api`;
@@ -42,7 +42,7 @@ export async function checkHealth() {
               Accept: "application/json",
             },
             signal: controller.signal,
-          })
+          }, config.sslVerify)
         );
 
         clearTimeout(timeout);

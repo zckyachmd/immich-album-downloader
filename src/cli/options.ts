@@ -41,6 +41,24 @@ export const commonOptions = {
     describe: "Custom output directory (default: ./downloads)",
     alias: "o",
   },
+  "base-url": {
+    type: "string",
+    describe: "Immich base URL",
+  },
+  "api-key": {
+    type: "string",
+    describe: "Immich API key",
+  },
+  interactive: {
+    type: "boolean",
+    default: true,
+    describe: "Prompt for missing config",
+  },
+  "reset-config": {
+    type: "boolean",
+    default: false,
+    describe: "Remove saved Immich config from .env before running setup",
+  },
   force: {
     type: "boolean",
     default: false,

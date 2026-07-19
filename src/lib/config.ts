@@ -1,109 +1,133 @@
-import { ConfigurationError } from "./errors";
+import { config as loadDotenv } from "dotenv";
+import { resetEnvConfig, writeEnvConfig } from "@/cli/configFile";
+import { promptForConfig } from "@/cli/prompts";
+import { ConfigurationError } from "@/lib/errors";
 
-/**
- * Validates and exports configuration
- * Throws error early if configuration is invalid
- * @throws {ConfigurationError} If configuration is invalid
- */
-function validateConfig() {
-  const required = ["IMMICH_API_KEY", "IMMICH_BASE_URL"];
-  const missing = required.filter((key) => !process.env[key]);
+export type AppConfig = {
+  apiKey: string;
+  baseUrl: string;
+  defaultOutput: string;
+  sslVerify: boolean;
+  concurrency: number;
+  maxRetries: number;
+  downloadTimeout: number;
+};
 
-  if (missing.length > 0) {
+const defaults = {
+  defaultOutput: "./downloads",
+  sslVerify: true,
+  concurrency: 5,
+  maxRetries: 3,
+  downloadTimeout: 30000,
+};
+
+const optionalFromEnv = (env: NodeJS.ProcessEnv) => ({
+  defaultOutput: env.DEFAULT_OUTPUT,
+  sslVerify: env.IMMICH_SSL_VERIFY === undefined ? undefined : env.IMMICH_SSL_VERIFY !== "false",
+  concurrency: parseNumber(env.IMMICH_CONCURRENCY),
+  maxRetries: parseNumber(env.IMMICH_MAX_RETRIES),
+  downloadTimeout: parseNumber(env.IMMICH_DOWNLOAD_TIMEOUT),
+});
+
+const configFromArgv = (argv) => ({
+  apiKey: argv["api-key"],
+  baseUrl: argv["base-url"],
+  defaultOutput: argv.output,
+  concurrency: argv.concurrency,
+  maxRetries: argv["max-retries"],
+});
+
+function parseNumber(value) {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined);
+}
+
+export function validateConfig(input: Partial<AppConfig>): AppConfig {
+  if (!input.apiKey) {
     throw new ConfigurationError(
-      `Missing required environment variables: ${missing.join(", ")}\n` +
-        "Please set them in your .env file or environment."
+      "Missing IMMICH_API_KEY. Set --api-key, IMMICH_API_KEY, or run interactively to configure it."
     );
   }
 
-  // Validate API key format (basic check)
-  if (process.env.IMMICH_API_KEY.length < 10) {
+  if (input.apiKey.length < 10) {
     throw new ConfigurationError("IMMICH_API_KEY appears to be invalid (too short)");
   }
 
-  // Validate URL format and normalize
-  let baseUrl;
-  try {
-    baseUrl = new URL(process.env.IMMICH_BASE_URL);
-  } catch (e) {
+  if (!input.baseUrl) {
     throw new ConfigurationError(
-      `IMMICH_BASE_URL must be a valid URL. Got: ${process.env.IMMICH_BASE_URL}`
+      "Missing IMMICH_BASE_URL. Set --base-url, IMMICH_BASE_URL, or run interactively to configure it."
     );
   }
 
-  // Normalize base URL - remove trailing slashes
-  // Keep /api if present - we'll handle it in API calls
-  let normalizedBaseUrl = baseUrl.href.replace(/\/+$/, ""); // Remove trailing slashes
+  let baseUrl;
+  try {
+    baseUrl = new URL(input.baseUrl);
+  } catch (e) {
+    throw new ConfigurationError(`IMMICH_BASE_URL must be a valid URL. Got: ${input.baseUrl}`);
+  }
 
-  // Warn/error on HTTP in production
   if (process.env.NODE_ENV === "production" && baseUrl.protocol !== "https:") {
     throw new ConfigurationError("IMMICH_BASE_URL must use HTTPS in production environment");
   }
 
-  // Warn on HTTP in development
-  if (process.env.NODE_ENV !== "production" && baseUrl.protocol !== "https:") {
-    console.warn("⚠️  WARNING: Using HTTP connection. This is insecure!");
-  }
-
-  // SSL/TLS configuration
-  // Default: true (verify SSL certificates)
-  // Set IMMICH_SSL_VERIFY=false to skip SSL verification (for self-signed certs)
-  const sslVerify = process.env.IMMICH_SSL_VERIFY !== "false";
-
-  if (!sslVerify && process.env.NODE_ENV === "production") {
-    console.warn("⚠️  WARNING: SSL certificate verification is disabled. This is insecure!");
-  }
-
-  // Concurrency configuration
-  // Default: 5 concurrent downloads
-  // Can be overridden by CLI argument --concurrency
-  let concurrency = 5;
-  if (process.env.IMMICH_CONCURRENCY) {
-    const parsed = parseInt(process.env.IMMICH_CONCURRENCY, 10);
-    if (!isNaN(parsed) && parsed >= 1 && parsed <= 50) {
-      concurrency = parsed;
-    } else {
-      console.warn(`⚠️  WARNING: IMMICH_CONCURRENCY must be between 1 and 50. Using default: 5`);
-    }
-  }
-
-  // Max retries configuration
-  // Default: 3 retries
-  // Can be overridden by CLI argument --max-retries
-  let maxRetries = 3;
-  if (process.env.IMMICH_MAX_RETRIES) {
-    const parsed = parseInt(process.env.IMMICH_MAX_RETRIES, 10);
-    if (!isNaN(parsed) && parsed >= 0 && parsed <= 10) {
-      maxRetries = parsed;
-    } else {
-      console.warn(`⚠️  WARNING: IMMICH_MAX_RETRIES must be between 0 and 10. Using default: 3`);
-    }
-  }
-
-  // Download timeout configuration (in milliseconds)
-  // Default: 30000 (30 seconds)
-  // Increase for large files or slow connections
-  let downloadTimeout = 30000;
-  if (process.env.IMMICH_DOWNLOAD_TIMEOUT) {
-    const parsed = parseInt(process.env.IMMICH_DOWNLOAD_TIMEOUT, 10);
-    if (!isNaN(parsed) && parsed >= 5000 && parsed <= 600000) {
-      downloadTimeout = parsed;
-    } else {
-      console.warn(
-        `⚠️  WARNING: IMMICH_DOWNLOAD_TIMEOUT must be between 5000 and 600000 ms (5s-10m). Using default: 30000`
-      );
-    }
-  }
-
-  return {
-    apiKey: process.env.IMMICH_API_KEY,
-    baseUrl: normalizedBaseUrl,
-    defaultOutput: process.env.DEFAULT_OUTPUT || "./downloads",
-    sslVerify: sslVerify,
-    concurrency: concurrency,
-    maxRetries: maxRetries,
-    downloadTimeout: downloadTimeout,
+  const config = {
+    apiKey: input.apiKey,
+    baseUrl: baseUrl.href.replace(/\/+$/, ""),
+    defaultOutput: input.defaultOutput ?? defaults.defaultOutput,
+    sslVerify: input.sslVerify ?? defaults.sslVerify,
+    concurrency: input.concurrency ?? defaults.concurrency,
+    maxRetries: input.maxRetries ?? defaults.maxRetries,
+    downloadTimeout: input.downloadTimeout ?? defaults.downloadTimeout,
   };
+
+  if (config.concurrency < 1 || config.concurrency > 50) {
+    throw new ConfigurationError("IMMICH_CONCURRENCY must be between 1 and 50");
+  }
+
+  if (config.maxRetries < 0 || config.maxRetries > 10) {
+    throw new ConfigurationError("IMMICH_MAX_RETRIES must be between 0 and 10");
+  }
+
+  if (config.downloadTimeout < 5000 || config.downloadTimeout > 600000) {
+    throw new ConfigurationError("IMMICH_DOWNLOAD_TIMEOUT must be between 5000 and 600000 ms");
+  }
+
+  return config;
 }
 
-export const config = validateConfig();
+export async function resolveConfig(argv = {}, env = process.env): Promise<AppConfig> {
+  loadDotenv({ override: false });
+
+  if (argv["reset-config"]) resetEnvConfig();
+
+  const args = configFromArgv(argv);
+  const fromEnv = {
+    apiKey: env.IMMICH_API_KEY,
+    baseUrl: env.IMMICH_BASE_URL,
+    ...optionalFromEnv(env),
+  };
+
+  const merged = {
+    apiKey: firstDefined(args.apiKey, fromEnv.apiKey),
+    baseUrl: firstDefined(args.baseUrl, fromEnv.baseUrl),
+    defaultOutput: firstDefined(args.defaultOutput, fromEnv.defaultOutput, defaults.defaultOutput),
+    sslVerify: firstDefined(fromEnv.sslVerify, defaults.sslVerify),
+    concurrency: firstDefined(args.concurrency, fromEnv.concurrency, defaults.concurrency),
+    maxRetries: firstDefined(args.maxRetries, fromEnv.maxRetries, defaults.maxRetries),
+    downloadTimeout: firstDefined(fromEnv.downloadTimeout, defaults.downloadTimeout),
+  };
+
+  if ((!merged.apiKey || !merged.baseUrl) && process.stdin.isTTY && argv["interactive"] !== false) {
+    const prompted = await promptForConfig(merged);
+    const config = validateConfig({ ...merged, ...prompted });
+    if (prompted.saveConfig) writeEnvConfig(config);
+    return config;
+  }
+
+  return validateConfig(merged);
+}
