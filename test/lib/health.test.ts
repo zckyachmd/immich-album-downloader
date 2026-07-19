@@ -63,6 +63,25 @@ describe("Immich health check", () => {
     expect(fetchMock.mock.calls[1][0]).toBe(endpoints.albums);
   });
 
+  test("retries with SSL verification disabled on certificate failure", async () => {
+    const config = { ...testConfig, sslVerify: true };
+    const certError = Object.assign(new Error("self signed certificate in certificate chain"), {
+      code: "SELF_SIGNED_CERT_IN_CHAIN",
+    });
+    let calls = 0;
+    const fetchMock = mock(() => {
+      calls++;
+      if (calls === 1) return Promise.reject(certError);
+      return Promise.resolve(jsonResponse({ version: "v2.3.1" }));
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(checkHealth(config)).resolves.toBe(true);
+
+    expect(config.sslVerify).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   test("returns false on authentication failure", async () => {
     globalThis.fetch = mock(() =>
       Promise.resolve(jsonResponse({ message: "Unauthorized" }, 401))

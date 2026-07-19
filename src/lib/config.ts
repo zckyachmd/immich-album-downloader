@@ -1,5 +1,5 @@
 import { config as loadDotenv } from "dotenv";
-import { resetEnvConfig, writeEnvConfig } from "@/cli/configFile";
+import { resetEnvConfig } from "@/cli/configFile";
 import { promptForConfig } from "@/cli/prompts";
 import { ConfigurationError } from "@/lib/errors";
 
@@ -11,6 +11,7 @@ export type AppConfig = {
   concurrency: number;
   maxRetries: number;
   downloadTimeout: number;
+  saveConfig?: boolean;
 };
 
 const defaults = {
@@ -125,7 +126,7 @@ export async function resolveConfig(argv = {}, env = process.env): Promise<AppCo
   if ((!merged.apiKey || !merged.baseUrl) && process.stdin.isTTY && argv["interactive"] !== false) {
     const prompted = await promptForConfig(merged);
     const config = validateConfig({ ...merged, ...prompted });
-    if (prompted.saveConfig) writeEnvConfig(config);
+    config.saveConfig = prompted.saveConfig;
     return config;
   }
 

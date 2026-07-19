@@ -159,6 +159,13 @@ export async function checkHealth(config: AppConfig) {
         return true;
       } catch (fetchError) {
         lastError = fetchError;
+        if (
+          fetchError.code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" ||
+          fetchError.code === "CERT_HAS_EXPIRED" ||
+          fetchError.code === "SELF_SIGNED_CERT_IN_CHAIN"
+        ) {
+          throw fetchError;
+        }
         // Try next endpoint if this one fails
         if (url !== endpoints[endpoints.length - 1]) {
           continue;
@@ -184,13 +191,14 @@ export async function checkHealth(config: AppConfig) {
       err.code === "CERT_HAS_EXPIRED" ||
       err.code === "SELF_SIGNED_CERT_IN_CHAIN"
     ) {
+      if (config.sslVerify) {
+        logError(`⚠️  SSL certificate error: ${err.message}`);
+        logError(`⚠️  Retrying with IMMICH_SSL_VERIFY=false.`);
+        config.sslVerify = false;
+        return checkHealth(config);
+      }
+
       logError(`❌ SSL certificate error: ${err.message}`);
-      logError(
-        `💡 Tip: If you're using a self-signed certificate, set IMMICH_SSL_VERIFY=false in your .env file`
-      );
-      logError(
-        `⚠️  WARNING: Disabling SSL verification is insecure and should only be used for development/testing!`
-      );
     } else if (err.message.includes("fetch") || err.message.includes("JSON")) {
       logError(`❌ Network/Parse error: ${err.message}`);
       if (err.message.includes("JSON")) {

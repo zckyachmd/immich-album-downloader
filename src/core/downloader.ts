@@ -1,5 +1,6 @@
 // @ts-nocheck
 import inquirer from "inquirer";
+import { writeEnvConfig } from "@/cli/configFile";
 import { getAlbums, getAssetsByAlbumId } from "@/lib/api";
 import { cancellationToken, setupSignalHandlers } from "@/lib/cancellation";
 import type { AppConfig } from "@/lib/config";
@@ -133,6 +134,8 @@ export const runDownloader = async (options, config: AppConfig) => {
     logError("💥 Cannot proceed without a valid connection to Immich server.");
     process.exit(1);
   }
+
+  if (config.saveConfig) writeEnvConfig(config);
 
   const concurrency = options["concurrency"] ?? config.concurrency;
   const maxRetries = options["max-retries"] ?? config.maxRetries;
