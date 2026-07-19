@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { RateLimiter } from "../rateLimiter";
+import { RateLimiter } from "../../src/lib/rateLimiter";
 
 describe("RateLimiter", () => {
   let rateLimiter;

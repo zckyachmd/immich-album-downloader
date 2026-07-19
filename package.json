@@ -6,6 +6,14 @@
   "bin": {
     "immich-album-downloader": "./src/main.ts"
   },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "USAGE.md"
+  ],
   "scripts": {
     "download": "bun run src/main.ts",
     "download:all": "bun run src/main.ts --all",

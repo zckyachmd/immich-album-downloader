@@ -6,8 +6,8 @@ import {
   calculateFileHash,
   formatFileSize,
   formatDuration,
-} from "../helpers";
-import { PathTraversalError } from "../errors";
+} from "../../src/lib/helpers";
+import { PathTraversalError } from "../../src/lib/errors";
 import path from "path";
 import os from "os";
 import fs from "fs";

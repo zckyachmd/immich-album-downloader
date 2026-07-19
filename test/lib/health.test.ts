@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, mock } from "bun:test";
-import { checkHealth } from "../health";
+import { checkHealth } from "../../src/lib/health";
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {

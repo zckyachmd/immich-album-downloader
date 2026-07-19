@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { getFetchOptions } from "../fetchConfig";
+import { getFetchOptions } from "../../src/lib/fetchConfig";
 
 describe("fetchConfig", () => {
   test("should return fetch options", () => {

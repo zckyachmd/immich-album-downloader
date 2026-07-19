@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test, mock } from "bun:test";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { APIError } from "../errors";
-import { downloadAssetById, getAlbums, getAssetsByAlbumId } from "../api";
+import { APIError } from "../../src/lib/errors";
+import { downloadAssetById, getAlbums, getAssetsByAlbumId } from "../../src/lib/api";
 
 const apiKey = "test-api-key-1234567890";
 

@@ -8,7 +8,7 @@ import {
   PathTraversalError,
   FileSystemError,
   DatabaseError,
-} from "../errors";
+} from "../../src/lib/errors";
 
 describe("Custom Errors", () => {
   test("AppError should have correct properties", () => {

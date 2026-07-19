@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { config } from "../config";
+import { config } from "../../src/lib/config";
 
 describe("config", () => {
   test("should have valid config structure", () => {
