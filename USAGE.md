@@ -320,16 +320,6 @@ If you want to build the image yourself instead of using the pre-built image:
 docker build -f docker/Dockerfile -t ghcr.io/zckyachmd/immich-album-downloader:latest .
 ```
 
-> The image name matches the default used in the wrapper script for consistency.
-
-### Option 4: Use the Provided Wrapper Script
-
-```bash
-./immich-album-downloader.sh --all
-```
-
-> This script automatically loads `.env` and forwards all arguments to the Docker container.
-
 ---
 
 ## 🔧 Advanced Usage

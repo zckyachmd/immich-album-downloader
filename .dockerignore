@@ -38,7 +38,3 @@ coverage/
 
 .gitlab-ci.yml
 .travis.yml
-
-build.sh
-build_stack.sh
-immich-album-downloader.sh
