@@ -1,4 +1,6 @@
+import { Readable } from "stream";
 import { pipeline } from "stream/promises";
+import type { ReadableStream as NodeReadableStream } from "stream/web";
 import fs from "fs";
 import { config } from "./config";
 import { logError } from "./logger";
@@ -223,7 +225,7 @@ export async function downloadAssetById(assetId, destPath, retries = 3) {
       const writeStream = fs.createWriteStream(destPath);
 
       try {
-        await pipeline(res.body, writeStream);
+        await pipeline(Readable.fromWeb(res.body as unknown as NodeReadableStream), writeStream);
 
         // Remove cancel listener on success
         if (unsubscribe) {
