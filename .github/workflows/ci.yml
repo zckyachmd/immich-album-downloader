@@ -23,6 +23,13 @@ jobs:
         with:
           bun-version-file: package.json
 
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - run: bun install --frozen-lockfile
       - run: bun run typecheck
       - run: bun run test
@@ -36,6 +43,10 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
 
       - uses: docker/setup-buildx-action@v3
 
