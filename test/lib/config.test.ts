@@ -2,7 +2,7 @@ import { describe, test, expect } from "bun:test";
 import { resolveConfig, validateConfig } from "../../src/lib/config";
 
 const env = {
-  IMMICH_API_KEY: "test-api-key-1234567890",
+  IMMICH_API_KEY: "fake-api-key-for-tests",
   IMMICH_BASE_URL: "https://example.com/",
 };
 
@@ -11,7 +11,7 @@ describe("config", () => {
     const config = validateConfig({ apiKey: env.IMMICH_API_KEY, baseUrl: env.IMMICH_BASE_URL });
 
     expect(config).toEqual({
-      apiKey: "test-api-key-1234567890",
+      apiKey: "fake-api-key-for-tests",
       baseUrl: "https://example.com",
       sslVerify: true,
       concurrency: 5,
@@ -23,11 +23,11 @@ describe("config", () => {
 
   test("argv overrides env", async () => {
     const config = await resolveConfig(
-      { "api-key": "flag-api-key-123", "base-url": "https://flag.example.com" },
+      { "api-key": "fake-flag-api-key", "base-url": "https://flag.example.com" },
       env
     );
 
-    expect(config.apiKey).toBe("flag-api-key-123");
+    expect(config.apiKey).toBe("fake-flag-api-key");
     expect(config.baseUrl).toBe("https://flag.example.com");
   });
 });

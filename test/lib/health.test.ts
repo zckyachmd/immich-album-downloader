@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, mock } from "bun:test";
 import { checkHealth } from "@/lib/health";
 
 const testConfig = {
-  apiKey: "test-api-key-1234567890",
+  apiKey: "fake-api-key-for-tests",
   baseUrl: "https://example.com",
   defaultOutput: "./downloads",
   sslVerify: true,
@@ -38,7 +38,7 @@ describe("Immich health check", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(endpoints.serverAbout);
     expect(fetchMock.mock.calls[0][1].headers).toEqual({
-      "x-api-key": "test-api-key-1234567890",
+      "x-api-key": "fake-api-key-for-tests",
       Accept: "application/json",
     });
   });

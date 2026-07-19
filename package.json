@@ -21,8 +21,8 @@
     "download:dry": "bun run src/main.ts --dry-run",
     "download:verbose": "bun run src/main.ts --verbose",
     "typecheck": "tsc --noEmit",
-    "test": "IMMICH_API_KEY=test-api-key-1234567890 IMMICH_BASE_URL=https://example.com bun test --isolate",
-    "test:watch": "IMMICH_API_KEY=test-api-key-1234567890 IMMICH_BASE_URL=https://example.com bun test --watch --isolate"
+    "test": "IMMICH_API_KEY=fake-api-key-for-tests IMMICH_BASE_URL=https://example.com bun test --isolate",
+    "test:watch": "IMMICH_API_KEY=fake-api-key-for-tests IMMICH_BASE_URL=https://example.com bun test --watch --isolate"
   },
   "dependencies": {
     "dotenv": "^16.6.1",

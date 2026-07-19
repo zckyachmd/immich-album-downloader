@@ -7,7 +7,7 @@ import { cancellationToken } from "@/lib/cancellation";
 import { APIError } from "@/lib/errors";
 
 const testConfig = {
-  apiKey: "test-api-key-1234567890",
+  apiKey: "fake-api-key-for-tests",
   baseUrl: "https://example.com",
   defaultOutput: "./downloads",
   sslVerify: true,
