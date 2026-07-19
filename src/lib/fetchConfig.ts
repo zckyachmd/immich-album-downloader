@@ -1,7 +1,8 @@
-import { config } from "./config";
-
-export function getFetchOptions(additionalOptions: RequestInit = {}): RequestInit {
-  if (config.sslVerify) return additionalOptions;
+export function getFetchOptions(
+  additionalOptions: RequestInit = {},
+  sslVerify = true
+): RequestInit {
+  if (sslVerify) return additionalOptions;
 
   const bunOptions = additionalOptions as RequestInit & { tls?: { rejectUnauthorized?: boolean } };
 

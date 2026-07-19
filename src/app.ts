@@ -1,9 +1,9 @@
-import "dotenv/config";
-import { parseArgs } from "./cli/index";
-import { handleDatabaseCommand } from "./cli/databaseCommands";
-import { ConfigurationError, ValidationError } from "./lib/errors.js";
-import { logError } from "./lib/logger.js";
-import { databaseLoaded, loadDatabase, markDatabaseLoaded, runDownloader } from "./core/downloader";
+import { parseArgs } from "@/cli/index";
+import { handleDatabaseCommand } from "@/cli/databaseCommands";
+import { databaseLoaded, loadDatabase, markDatabaseLoaded, runDownloader } from "@/core/downloader";
+import { resolveConfig } from "@/lib/config";
+import { ConfigurationError, ValidationError } from "@/lib/errors";
+import { logError } from "@/lib/logger";
 
 export const run = async (argv = parseArgs()) => {
   if (
@@ -13,11 +13,12 @@ export const run = async (argv = parseArgs()) => {
     argv["list-backups"]
   ) {
     markDatabaseLoaded();
-    await handleDatabaseCommand(argv);
-    return;
+    return await handleDatabaseCommand(argv);
   }
 
-  await runDownloader(argv);
+  const config = await resolveConfig(argv);
+  await runDownloader(argv, config);
+  return 0;
 };
 
 export const handleFatalError = async (err) => {
@@ -41,7 +42,7 @@ export const handleFatalError = async (err) => {
     }
   }
 
-  process.exit(1);
+  return 1;
 };
 
 export const closeDatabaseOnExit = () => {

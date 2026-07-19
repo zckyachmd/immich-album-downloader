@@ -1,4 +1,4 @@
-import { config } from "./config";
+import type { AppConfig } from "./config";
 import { log, logError } from "./logger";
 import { getFetchOptions } from "./fetchConfig";
 
@@ -6,7 +6,7 @@ import { getFetchOptions } from "./fetchConfig";
  * Checks if the Immich API is accessible and credentials are valid
  * @returns {Promise<boolean>} True if healthy, false otherwise
  */
-export async function checkHealth() {
+export async function checkHealth(config: AppConfig) {
   try {
     // Normalize base URL - ensure we have /api prefix
     const apiBase = config.baseUrl.endsWith("/api") ? config.baseUrl : `${config.baseUrl}/api`;
@@ -42,7 +42,7 @@ export async function checkHealth() {
               Accept: "application/json",
             },
             signal: controller.signal,
-          })
+          }, config.sslVerify)
         );
 
         clearTimeout(timeout);
@@ -159,6 +159,13 @@ export async function checkHealth() {
         return true;
       } catch (fetchError) {
         lastError = fetchError;
+        if (
+          fetchError.code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" ||
+          fetchError.code === "CERT_HAS_EXPIRED" ||
+          fetchError.code === "SELF_SIGNED_CERT_IN_CHAIN"
+        ) {
+          throw fetchError;
+        }
         // Try next endpoint if this one fails
         if (url !== endpoints[endpoints.length - 1]) {
           continue;
@@ -184,13 +191,14 @@ export async function checkHealth() {
       err.code === "CERT_HAS_EXPIRED" ||
       err.code === "SELF_SIGNED_CERT_IN_CHAIN"
     ) {
+      if (config.sslVerify) {
+        logError(`⚠️  SSL certificate error: ${err.message}`);
+        logError(`⚠️  Retrying with IMMICH_SSL_VERIFY=false.`);
+        config.sslVerify = false;
+        return checkHealth(config);
+      }
+
       logError(`❌ SSL certificate error: ${err.message}`);
-      logError(
-        `💡 Tip: If you're using a self-signed certificate, set IMMICH_SSL_VERIFY=false in your .env file`
-      );
-      logError(
-        `⚠️  WARNING: Disabling SSL verification is insecure and should only be used for development/testing!`
-      );
     } else if (err.message.includes("fetch") || err.message.includes("JSON")) {
       logError(`❌ Network/Parse error: ${err.message}`);
       if (err.message.includes("JSON")) {

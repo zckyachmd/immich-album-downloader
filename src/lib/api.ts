@@ -1,13 +1,13 @@
 import fs from "fs";
-import { config } from "./config";
+import type { AppConfig } from "./config";
 import { logError } from "./logger";
 import { rateLimiter } from "./rateLimiter";
 import { APIError, NetworkError } from "./errors";
 import { getFetchOptions } from "./fetchConfig";
 import { cancellationToken } from "./cancellation";
 
-const API_KEY = config.apiKey;
-const BASE_URL = config.baseUrl;
+const getApiBase = (config: AppConfig) =>
+  config.baseUrl.endsWith("/api") ? config.baseUrl : `${config.baseUrl}/api`;
 
 /**
  * Fetches all albums from Immich API
@@ -15,20 +15,20 @@ const BASE_URL = config.baseUrl;
  * @throws {APIError} If API request fails
  * @throws {NetworkError} If network error occurs
  */
-export async function getAlbums() {
+export async function getAlbums(config: AppConfig) {
   await rateLimiter.waitIfNeeded();
 
   try {
     // Normalize URL - ensure /api prefix
-    const apiBase = BASE_URL.endsWith("/api") ? BASE_URL : `${BASE_URL}/api`;
+    const apiBase = getApiBase(config);
     const res = await fetch(
       `${apiBase}/albums`,
       getFetchOptions({
         headers: {
-          "x-api-key": API_KEY,
+          "x-api-key": config.apiKey,
           Accept: "application/json",
         },
-      })
+      }, config.sslVerify)
     );
 
     if (!res.ok) {
@@ -56,8 +56,8 @@ export async function getAlbums() {
  * @throws {NetworkError} If network error occurs
  * @throws {ValidationError} If response format is invalid
  */
-export async function getAssetsByAlbumId(albumId) {
-  const apiBase = BASE_URL.endsWith("/api") ? BASE_URL : `${BASE_URL}/api`;
+export async function getAssetsByAlbumId(config: AppConfig, albumId) {
+  const apiBase = getApiBase(config);
 
   try {
     await rateLimiter.waitIfNeeded();
@@ -67,9 +67,9 @@ export async function getAssetsByAlbumId(albumId) {
       getFetchOptions({
         headers: {
           Accept: "application/json",
-          "x-api-key": API_KEY,
+          "x-api-key": config.apiKey,
         },
-      })
+      }, config.sslVerify)
     );
 
     if (!albumRes.ok) {
@@ -86,7 +86,7 @@ export async function getAssetsByAlbumId(albumId) {
     if (Array.isArray(album?.items)) return album.items;
     if (Array.isArray(album)) return album;
 
-    return await searchAssetsByAlbumId(apiBase, albumId, album?.assetCount);
+    return await searchAssetsByAlbumId(config, apiBase, albumId, album?.assetCount);
   } catch (err) {
     if (err instanceof APIError) {
       throw err;
@@ -95,7 +95,7 @@ export async function getAssetsByAlbumId(albumId) {
   }
 }
 
-async function searchAssetsByAlbumId(apiBase, albumId, expectedCount) {
+async function searchAssetsByAlbumId(config: AppConfig, apiBase, albumId, expectedCount) {
   const assets = [];
   const pageSize = 1000;
   let page = 1;
@@ -110,10 +110,10 @@ async function searchAssetsByAlbumId(apiBase, albumId, expectedCount) {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          "x-api-key": API_KEY,
+          "x-api-key": config.apiKey,
         },
         body: JSON.stringify({ albumIds: [albumId], page, size: pageSize, withExif: true }),
-      })
+      }, config.sslVerify)
     );
 
     if (!res.ok) {
@@ -159,12 +159,12 @@ async function searchAssetsByAlbumId(apiBase, albumId, expectedCount) {
  * @throws {NetworkError} If network error occurs after all retries
  * @throws {FileSystemError} If file write fails
  */
-export async function downloadAssetById(assetId, destPath, retries = 3) {
+export async function downloadAssetById(config: AppConfig, assetId, destPath, retries = 3) {
   // Check cancellation before starting
   cancellationToken.throwIfCancelled();
 
   // Normalize URL - ensure /api prefix
-  const apiBase = BASE_URL.endsWith("/api") ? BASE_URL : `${BASE_URL}/api`;
+  const apiBase = getApiBase(config);
   const url = `${apiBase}/assets/${assetId}/original`;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -187,11 +187,11 @@ export async function downloadAssetById(assetId, destPath, retries = 3) {
         url,
         getFetchOptions({
           headers: {
-            "x-api-key": API_KEY,
+            "x-api-key": config.apiKey,
             Accept: "application/octet-stream",
           },
           signal: controller.signal,
-        })
+        }, config.sslVerify)
       );
 
       clearTimeout(timeout);

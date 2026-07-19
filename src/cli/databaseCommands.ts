@@ -6,9 +6,9 @@ import {
   closeDatabase,
   listBackups,
   restoreDatabase,
-} from "../lib/db";
-import { expandPath, formatFileSize } from "../lib/helpers";
-import { log, logError, logWarn } from "../lib/logger.js";
+} from "@/lib/db";
+import { expandPath, formatFileSize } from "@/lib/helpers";
+import { log, logError, logWarn } from "@/lib/logger";
 
 export async function handleDatabaseCommand(argv) {
   if (argv["cleanup-db"] !== undefined) {
@@ -31,11 +31,11 @@ export async function handleDatabaseCommand(argv) {
       log(`✅ Cleanup completed: ${result.deleted} record(s) deleted`);
       log(`   Cutoff date: ${new Date(result.cutoffDate).toLocaleString()}`);
       closeDatabase();
-      process.exit(0);
+      return 0;
     } catch (err) {
       logError(`❌ Database cleanup failed: ${err.message}`);
       closeDatabase();
-      process.exit(1);
+      return 1;
     }
   }
 
@@ -55,11 +55,11 @@ export async function handleDatabaseCommand(argv) {
       log(`✅ Backup created successfully: ${result}`);
       log(`   Size: ${(stats.size / 1024).toFixed(2)} KB`);
       closeDatabase();
-      process.exit(0);
+      return 0;
     } catch (err) {
       logError(`❌ Database backup failed: ${err.message}`);
       closeDatabase();
-      process.exit(1);
+      return 1;
     }
   }
 
@@ -76,11 +76,11 @@ export async function handleDatabaseCommand(argv) {
       }
       log(`✅ Database restored successfully from: ${backupPath}`);
       closeDatabase();
-      process.exit(0);
+      return 0;
     } catch (err) {
       logError(`❌ Database restore failed: ${err.message}`);
       closeDatabase();
-      process.exit(1);
+      return 1;
     }
   }
 
@@ -104,11 +104,11 @@ export async function handleDatabaseCommand(argv) {
       }
 
       closeDatabase();
-      process.exit(0);
+      return 0;
     } catch (err) {
       logError(`❌ Failed to list backups: ${err.message}`);
       closeDatabase();
-      process.exit(1);
+      return 1;
     }
   }
 }

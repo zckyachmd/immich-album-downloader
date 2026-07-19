@@ -12,11 +12,9 @@ import {
   markAssetAsFailed,
   getFailedAssets,
 } from "./db";
-import { config } from "./config";
+import type { AppConfig } from "./config";
 import { cancellationToken } from "./cancellation";
 import { DatabaseError } from "./errors";
-
-const BASE_URL = config.baseUrl;
 
 const checkFileExistence = async (filePath, expectedChecksum, assetId, albumId, targetDir) => {
   try {
@@ -50,7 +48,13 @@ const checkFileExistence = async (filePath, expectedChecksum, assetId, albumId, 
   return false;
 };
 
-const downloadWithRetry = async (asset, outputFilePath, retries = 3, sizeLimitInBytes) => {
+const downloadWithRetry = async (
+  config: AppConfig,
+  asset,
+  outputFilePath,
+  retries = 3,
+  sizeLimitInBytes
+) => {
   // File size is in exifInfo.fileSizeInByte (confirmed from API testing)
   const assetSize =
     asset.exifInfo?.fileSizeInByte || asset.size || asset.fileSize || asset.originalSize || 0;
@@ -64,7 +68,7 @@ const downloadWithRetry = async (asset, outputFilePath, retries = 3, sizeLimitIn
 
   while (attempt < retries) {
     try {
-      await downloadAssetById(asset.id, outputFilePath);
+      await downloadAssetById(config, asset.id, outputFilePath);
       return { status: "success", error: null };
     } catch (err) {
       attempt++;
@@ -267,6 +271,7 @@ export async function downloadAlbum(album, outputDir, options = {}) {
         }
 
         const downloadResult = await downloadWithRetry(
+          options.config,
           asset,
           validatedFilePath,
           options.maxRetries || 3,
