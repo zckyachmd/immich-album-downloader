@@ -18,7 +18,7 @@ RUN addgroup -S app && \
     chown app:app /downloads /app/data
 
 COPY --from=deps --chown=app:app /app/node_modules ./node_modules
-COPY --chown=app:app package.json bun.lock ./
+COPY --chown=app:app package.json bun.lock tsconfig.json ./
 COPY --chown=app:app src ./src
 
 USER app
