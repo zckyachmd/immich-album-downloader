@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test, mock } from "bun:test";
 import { checkHealth } from "@/lib/health";
 
+const originalConsoleLog = console.log;
+
 const testConfig = {
   apiKey: "fake-api-key-for-tests",
   baseUrl: "https://example.com",
@@ -23,6 +25,7 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 afterEach(() => {
+  console.log = originalConsoleLog;
   mock.restore();
 });
 
@@ -64,6 +67,7 @@ describe("Immich health check", () => {
   });
 
   test("returns false on certificate failure when SSL verification is enabled", async () => {
+    console.log = mock(() => {}) as unknown as typeof console.log;
     const config = { ...testConfig, sslVerify: true };
     const certError = Object.assign(new Error("self signed certificate in certificate chain"), {
       code: "SELF_SIGNED_CERT_IN_CHAIN",
@@ -78,6 +82,7 @@ describe("Immich health check", () => {
   });
 
   test("returns false on authentication failure", async () => {
+    console.log = mock(() => {}) as unknown as typeof console.log;
     globalThis.fetch = mock(() =>
       Promise.resolve(jsonResponse({ message: "Unauthorized" }, 401))
     ) as unknown as typeof fetch;
