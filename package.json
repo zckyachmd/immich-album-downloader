@@ -2,6 +2,23 @@
   "name": "immich-album-downloader",
   "version": "1.0.12",
   "description": "CLI tool for downloading and backing up Immich albums with resume support, filtering, and Docker support.",
+  "license": "MIT",
+  "author": "Zacky Achmad",
+  "homepage": "https://github.com/zckyachmd/immich-album-downloader#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zckyachmd/immich-album-downloader.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zckyachmd/immich-album-downloader/issues"
+  },
+  "keywords": [
+    "immich",
+    "album",
+    "backup",
+    "downloader",
+    "cli"
+  ],
   "packageManager": "bun@1.2.21",
   "type": "module",
   "bin": {
