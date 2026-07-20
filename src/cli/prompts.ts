@@ -223,7 +223,7 @@ function getFieldPrompt(
       return {
         ...basePrompt,
         type: "input",
-        validate: fieldKey === "baseUrl" ? validateUrl : undefined,
+        ...(fieldKey === "baseUrl" ? { validate: validateUrl } : {}),
         filter: (value: string) =>
           fieldKey === "baseUrl" ? value.trim() : value,
       };
