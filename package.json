@@ -27,6 +27,7 @@
     "test:watch": "IMMICH_API_KEY=fake-api-key-for-tests IMMICH_BASE_URL=https://example.com bun test --watch --isolate"
   },
   "dependencies": {
+    "chalk": "^5.4.1",
     "dotenv": "^16.6.1",
     "inquirer": "^9.3.8",
     "p-limit": "^4.0.0",
