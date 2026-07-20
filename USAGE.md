@@ -13,6 +13,39 @@ Technical guide for running Immich Album Downloader. Built for technical users w
 | Run with Docker | `docker run --rm --env-file .env -v "$(pwd)/downloads:/downloads" -v "$(pwd)/data:/app/data" ghcr.io/zckyachmd/immich-album-downloader:latest --all` |
 | Develop from source | `git clone https://github.com/zckyachmd/immich-album-downloader.git && cd immich-album-downloader && bun install` |
 
+## 🔑 Immich API Key
+
+This app authenticates with an Immich API key. Per current Immich docs, API keys are created from the Immich web app user settings and can be limited with specific permissions.
+
+### Required access for this app
+
+| App action | Immich API endpoint | Required capability |
+| --- | --- | --- |
+| List visible albums | `GET /albums` | Read albums available to the API key owner |
+| Read album contents | `GET /albums/{id}` | Read album metadata and assets |
+| Download originals | `GET /assets/{id}/original` | Download asset originals |
+| Read asset info/check metadata | `GET /assets/{id}` / asset metadata endpoints | Read asset metadata |
+
+Minimum practical scope: **read albums + read/download assets**. This downloader does not need upload, delete, archive, share, user admin, library admin, or server admin permissions.
+
+<details open>
+<summary><strong>Create an Immich API key</strong></summary>
+
+1. Open your Immich web app.
+2. Go to your user account settings.
+3. Open the API Keys section.
+4. Create a new API key.
+5. Grant only the permissions needed for reading albums and downloading assets.
+6. Copy the generated key and store it as `IMMICH_API_KEY`.
+
+```env
+IMMICH_API_KEY=your_api_key_here
+```
+
+Keep the key private. If it leaks, revoke it in Immich and create a new one.
+
+</details>
+
 ## 🧭 Choose Your Runtime
 
 | Mode | Best for | Requires | Vibe |
