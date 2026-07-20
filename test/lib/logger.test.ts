@@ -3,18 +3,22 @@ import { log, resetProgressTracking, logProgress } from "../../src/lib/logger";
 
 describe("logger", () => {
   let originalConsoleLog;
+  let originalStdoutWrite;
   let consoleLogSpy;
 
   beforeEach(() => {
     // Mock console.log
     originalConsoleLog = console.log;
+    originalStdoutWrite = process.stdout.write;
     consoleLogSpy = jest.fn();
     console.log = consoleLogSpy;
+    process.stdout.write = jest.fn() as unknown as typeof process.stdout.write;
   });
 
   afterEach(() => {
     // Restore console.log
     console.log = originalConsoleLog;
+    process.stdout.write = originalStdoutWrite;
     if (consoleLogSpy.mockClear) {
       consoleLogSpy.mockClear();
     }

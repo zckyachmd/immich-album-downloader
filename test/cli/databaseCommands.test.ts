@@ -9,6 +9,7 @@ const env = {
   IMMICH_BASE_URL: process.env.IMMICH_BASE_URL,
 };
 let tempDirs: string[] = [];
+const originalConsoleLog = console.log;
 
 function tempDir() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "iad-db-command-"));
@@ -17,6 +18,7 @@ function tempDir() {
 }
 
 afterEach(() => {
+  console.log = originalConsoleLog;
   mock.restore();
 
   if (env.IMMICH_API_KEY === undefined) delete process.env.IMMICH_API_KEY;
@@ -31,6 +33,7 @@ afterEach(() => {
 
 describe("database commands", () => {
   test("backup-db handles directory path", async () => {
+    console.log = mock(() => {}) as unknown as typeof console.log;
     const dir = tempDir();
 
     await expect(run({ "backup-db": `${dir}/` })).resolves.toBe(0);
@@ -39,6 +42,8 @@ describe("database commands", () => {
   });
 
   test("cleanup-db rejects invalid numeric range", async () => {
+    console.log = mock(() => {}) as unknown as typeof console.log;
+
     await expect(run({ "cleanup-db": 0 })).resolves.toBe(1);
     await expect(run({ "cleanup-db": 1.5 })).resolves.toBe(1);
   });
@@ -56,6 +61,7 @@ describe("database commands", () => {
   });
 
   test("list-backups does not require Immich config", async () => {
+    console.log = mock(() => {}) as unknown as typeof console.log;
     delete process.env.IMMICH_API_KEY;
     delete process.env.IMMICH_BASE_URL;
 
