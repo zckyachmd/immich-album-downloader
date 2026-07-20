@@ -259,10 +259,7 @@ function printCliTip(fieldKey: string, currentValue: any) {
 export async function promptForConfig(current: any) {
   printHeader();
 
-  const prompts: any[] = [];
-  let currentSection = "";
-
-  // Group fields by section
+  // Group fields by section, preserving CONFIG_FIELDS declaration order
   const fieldsBySection = Object.entries(CONFIG_FIELDS).reduce(
     (acc, [key, config]) => {
       if (!acc[config.section]) acc[config.section] = [];
@@ -272,9 +269,12 @@ export async function promptForConfig(current: any) {
     {} as Record<string, any[]>
   );
 
-  // Build prompts with section headers
-  Object.entries(fieldsBySection).forEach(([section, fields]) => {
-    fields.forEach((fieldConfig) => {
+  let answers: Record<string, any> = {};
+
+  for (const [section, fields] of Object.entries(fieldsBySection)) {
+    const sectionPrompts: any[] = [];
+
+    for (const fieldConfig of fields) {
       const fieldKey = fieldConfig.key;
       const currentValue = current[fieldKey];
       const shouldPrompt =
@@ -284,25 +284,7 @@ export async function promptForConfig(current: any) {
         fieldKey === "maxRetries" ||
         !currentValue;
 
-      if (!shouldPrompt) return;
-
-      // Print section header once per section
-      if (currentSection !== section) {
-        currentSection = section;
-        // We'll add a separator as first item in prompts for each section
-        if (prompts.length > 0) {
-          prompts.push(
-            new inquirer.Separator(colors.muted("─".repeat(60)))
-          );
-        }
-        prompts.push(
-          new inquirer.Separator(
-            colors.bold(
-              `${section} ${colors.dim(`[${fieldConfig.sectionIndicator}]`)}`
-            )
-          )
-        );
-      }
+      if (!shouldPrompt) continue;
 
       // Determine prompt type
       let promptType: "input" | "password" | "number" | "confirm" = "input";
@@ -318,9 +300,7 @@ export async function promptForConfig(current: any) {
         prompt.validate = (value: string) => {
           const result = validateUrl(value);
           if (result === true) {
-            console.log(
-              `  ${indicators.success} Valid HTTPS URL`
-            );
+            console.log(`  ${indicators.success} Valid HTTPS URL`);
           }
           return result;
         };
@@ -338,28 +318,15 @@ export async function promptForConfig(current: any) {
         };
       }
 
-      prompts.push(prompt);
-    });
-  });
+      sectionPrompts.push(prompt);
+    }
 
-  // Add final separator before save config
-  prompts.push(new inquirer.Separator(colors.muted("─".repeat(60))));
-  prompts.push(
-    new inquirer.Separator(
-      colors.bold(`Persistence ${colors.dim("[OPTIONAL]")}`)
-    )
-  );
+    if (sectionPrompts.length === 0) continue;
 
-  // Add save config prompt
-  prompts.push({
-    type: "confirm",
-    name: "saveConfig",
-    message: CONFIG_FIELDS.saveConfig.label,
-    default: true,
-    prefix: `  ${indicators.question}`,
-  });
-
-  const answers = await inquirer.prompt(prompts);
+    printSectionHeader(section, fields[0].sectionIndicator);
+    const sectionAnswers = await inquirer.prompt(sectionPrompts, answers);
+    answers = { ...answers, ...sectionAnswers };
+  }
 
   // Print completion message
   console.log("");
