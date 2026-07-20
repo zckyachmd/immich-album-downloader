@@ -48,7 +48,7 @@ function firstDefined(...values) {
   return values.find((value) => value !== undefined);
 }
 
-export function validateConfig(input: Partial<AppConfig>): AppConfig {
+export function validateConfig(input: Partial<AppConfig>, env = process.env): AppConfig {
   if (!input.apiKey) {
     throw new ConfigurationError(
       "Missing IMMICH_API_KEY. Set --api-key, IMMICH_API_KEY, or run interactively to configure it. Example: immich-album-downloader --base-url https://immich.example.com --api-key your-api-key --all"
@@ -72,8 +72,14 @@ export function validateConfig(input: Partial<AppConfig>): AppConfig {
     throw new ConfigurationError(`IMMICH_BASE_URL must be a valid URL. Got: ${input.baseUrl}`);
   }
 
-  if (process.env.NODE_ENV === "production" && baseUrl.protocol !== "https:") {
-    throw new ConfigurationError("IMMICH_BASE_URL must use HTTPS in production environment");
+  if (env.NODE_ENV === "production" && baseUrl.protocol !== "https:") {
+    const allowInsecure = env.IMMICH_ALLOW_INSECURE_HTTP === "true";
+
+    if (!allowInsecure) {
+      throw new ConfigurationError(
+        "IMMICH_BASE_URL must use HTTPS in production environment. Set IMMICH_ALLOW_INSECURE_HTTP=true to allow HTTP for internal/private networks."
+      );
+    }
   }
 
   const config = {
@@ -126,12 +132,12 @@ export async function resolveConfig(argv = {}, env = process.env): Promise<AppCo
 
   if ((!merged.apiKey || !merged.baseUrl) && process.stdin.isTTY && argv["interactive"] !== false) {
     const prompted = await promptForConfig(merged);
-    const config = validateConfig({ ...merged, ...prompted });
+    const config = validateConfig({ ...merged, ...prompted }, env);
     config.saveConfig = prompted.saveConfig;
     return config;
   }
 
-  const config = validateConfig(merged);
+  const config = validateConfig(merged, env);
   config.saveConfig = merged.saveConfig;
   return config;
 }

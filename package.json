@@ -1,6 +1,6 @@
 {
   "name": "immich-album-downloader",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "CLI tool for downloading and backing up Immich albums with resume support, filtering, and Docker support.",
   "packageManager": "bun@1.2.21",
   "type": "module",
