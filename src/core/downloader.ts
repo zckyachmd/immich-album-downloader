@@ -1,5 +1,10 @@
 // @ts-nocheck
+import figures from "@inquirer/figures";
 import inquirer from "inquirer";
+
+// Checkbox prompt hardcodes the "❯" cursor glyph glued to the radio icon
+// (❯◯), which reads as noisy clutter. Blank it so only the radio shows.
+figures.pointer = "";
 import { writeEnvConfig } from "@/cli/configFile";
 import { getAlbums, getAssetsByAlbumId } from "@/lib/api";
 import { cancellationToken, setupSignalHandlers } from "@/lib/cancellation";
@@ -132,8 +137,6 @@ export const runDownloader = async (options, config: AppConfig) => {
 
   log(`Configuration:`);
   log(`-- Output directory: ${resolvedOutputDir}${options.output ? " (CLI)" : " (from .env)"}`);
-  log(`-- Concurrency: ${concurrency}${options["concurrency"] ? " (CLI)" : " (from .env)"}`);
-  log(`-- Max retries: ${maxRetries}${options["max-retries"] ? " (CLI)" : " (from .env)"}`);
   if (options["limit-size"]) log(`-- Limit size: ${options["limit-size"]} MB`);
   if (options.force) log(`-- Override existing files: enabled`);
   log("Press Ctrl+C to cancel gracefully\n", "info");

@@ -5,6 +5,7 @@
     "": {
       "name": "immich-album-downloader",
       "dependencies": {
+        "@inquirer/figures": "^1.0.15",
         "chalk": "^5.4.1",
         "dotenv": "^16.6.1",
         "inquirer": "^9.3.8",
