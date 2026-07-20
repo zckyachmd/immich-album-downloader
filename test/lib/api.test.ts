@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, test, mock } from "bun:test";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { downloadAssetById, getAlbums, getAssetsByAlbumId } from "@/lib/api";
-import { cancellationToken } from "@/lib/cancellation";
-import { APIError } from "@/lib/errors";
+import { downloadAssetById, getAlbums, getAssetsByAlbumId } from "../../src/lib/api";
+import { cancellationToken } from "../../src/lib/cancellation";
+import { APIError } from "../../src/lib/errors";
 
 const testConfig = {
   apiKey: "fake-api-key-for-tests",

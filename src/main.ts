@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { closeDatabaseOnExit, handleFatalError, run } from "@/app";
+import { closeDatabaseOnExit, handleFatalError, run } from "./app";
 
 closeDatabaseOnExit();
 

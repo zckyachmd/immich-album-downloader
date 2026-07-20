@@ -1,9 +1,9 @@
-import { parseArgs } from "@/cli/index";
-import { handleDatabaseCommand } from "@/cli/databaseCommands";
-import { databaseLoaded, loadDatabase, markDatabaseLoaded, runDownloader } from "@/core/downloader";
-import { resolveConfig } from "@/lib/config";
-import { CancellationError, ConfigurationError, ValidationError } from "@/lib/errors";
-import { logError } from "@/lib/logger";
+import { parseArgs } from "./cli/index";
+import { handleDatabaseCommand } from "./cli/databaseCommands";
+import { databaseLoaded, loadDatabase, markDatabaseLoaded, runDownloader } from "./core/downloader";
+import { resolveConfig } from "./lib/config";
+import { CancellationError, ConfigurationError, ValidationError } from "./lib/errors";
+import { logError } from "./lib/logger";
 
 export const run = async (argv = parseArgs()) => {
   if (

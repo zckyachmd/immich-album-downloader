@@ -1,7 +1,7 @@
 import { config as loadDotenv } from "dotenv";
-import { resetEnvConfig } from "@/cli/configFile";
-import { promptForConfig } from "@/cli/prompts";
-import { ConfigurationError } from "@/lib/errors";
+import { resetEnvConfig } from "../cli/configFile";
+import { promptForConfig } from "../cli/prompts";
+import { ConfigurationError } from "./errors";
 
 export type AppConfig = {
   apiKey: string;

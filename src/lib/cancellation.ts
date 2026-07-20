@@ -1,4 +1,4 @@
-import { CancellationError } from "@/lib/errors";
+import { CancellationError } from "./errors";
 
 class CancellationToken {
   cancelled: boolean;

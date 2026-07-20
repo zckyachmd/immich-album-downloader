@@ -9,7 +9,7 @@ let tempDirs: string[] = [];
 let promptResult = {};
 const promptForConfig = mock(() => Promise.resolve(promptResult));
 
-mock.module("@/cli/prompts", () => ({ promptForConfig }));
+mock.module("../../src/cli/prompts", () => ({ promptForConfig }));
 
 function tempDir() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "iad-config-resolution-"));

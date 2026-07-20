@@ -6,9 +6,9 @@ import {
   closeDatabase,
   listBackups,
   restoreDatabase,
-} from "@/lib/db";
-import { expandPath, formatFileSize } from "@/lib/helpers";
-import { log, logError, logWarn } from "@/lib/logger";
+} from "../lib/db";
+import { expandPath, formatFileSize } from "../lib/helpers";
+import { log, logError, logWarn } from "../lib/logger";
 
 export async function handleDatabaseCommand(argv) {
   if (argv["cleanup-db"] !== undefined) {

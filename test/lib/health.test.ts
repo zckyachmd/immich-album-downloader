@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, mock } from "bun:test";
-import { checkHealth } from "@/lib/health";
+import { checkHealth } from "../../src/lib/health";
 
 const originalConsoleLog = console.log;
 

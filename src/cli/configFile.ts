@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import type { AppConfig } from "@/lib/config";
+import type { AppConfig } from "../lib/config";
 
 const envPath = () => path.join(process.cwd(), ".env");
 const knownKeys = new Set([
