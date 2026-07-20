@@ -28,6 +28,10 @@ function tempDir() {
 }
 
 describe("config", () => {
+  test("config module imports without env", () => {
+    expect(typeof validateConfig).toBe("function");
+  });
+
   test("validates config structure", () => {
     const config = validateConfig({ apiKey: env.IMMICH_API_KEY, baseUrl: env.IMMICH_BASE_URL });
 
@@ -53,7 +57,37 @@ describe("config", () => {
   });
 
   test("throws cleanly without config in non-interactive mode", async () => {
-    await expect(resolveConfig({ interactive: false }, {})).rejects.toThrow("Missing IMMICH_API_KEY");
+    await expect(resolveConfig({ interactive: false }, {})).rejects.toThrow(
+      "Example: immich-album-downloader --base-url https://immich.example.com --api-key your-api-key --all"
+    );
+  });
+
+  test("flags override .env", async () => {
+    const dir = tempDir();
+    process.chdir(dir);
+    fs.writeFileSync(
+      ".env",
+      [
+        "IMMICH_API_KEY=fake-env-file-api-key",
+        "IMMICH_BASE_URL=https://env-file.example.com/",
+        "IMMICH_CONCURRENCY=9",
+        "",
+      ].join("\n")
+    );
+
+    const config = await resolveConfig(
+      {
+        interactive: false,
+        "api-key": "fake-flag-api-key",
+        "base-url": "https://flag.example.com/",
+        concurrency: 7,
+      },
+      process.env
+    );
+
+    expect(config.apiKey).toBe("fake-flag-api-key");
+    expect(config.baseUrl).toBe("https://flag.example.com");
+    expect(config.concurrency).toBe(7);
   });
 
   test("loads existing .env when env argument is process.env", async () => {
@@ -93,5 +127,30 @@ describe("config", () => {
       "Missing IMMICH_API_KEY"
     );
     expect(fs.readFileSync(".env", "utf8")).toBe("UNKNOWN=kept\n");
+  });
+
+  test("blocks HTTP in production by default", () => {
+    expect(() =>
+      validateConfig(
+        { apiKey: env.IMMICH_API_KEY, baseUrl: "http://example.com/api" },
+        { NODE_ENV: "production" }
+      )
+    ).toThrow("IMMICH_BASE_URL must use HTTPS in production environment");
+  });
+
+  test("allows HTTP when IMMICH_ALLOW_INSECURE_HTTP=true", () => {
+    const config = validateConfig(
+      { apiKey: env.IMMICH_API_KEY, baseUrl: "http://immich-server:2283/api" },
+      { NODE_ENV: "production", IMMICH_ALLOW_INSECURE_HTTP: "true" }
+    );
+    expect(config.baseUrl).toBe("http://immich-server:2283/api");
+  });
+
+  test("allows HTTP in non-production environments", () => {
+    const config = validateConfig(
+      { apiKey: env.IMMICH_API_KEY, baseUrl: "http://example.com/api" },
+      { NODE_ENV: "development" }
+    );
+    expect(config.baseUrl).toBe("http://example.com/api");
   });
 });

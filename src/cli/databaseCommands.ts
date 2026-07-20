@@ -15,6 +15,11 @@ export async function handleDatabaseCommand(argv) {
     const daysOld = argv["cleanup-db"];
     const onlyFailed = !argv["cleanup-db-all"];
 
+    if (!Number.isInteger(daysOld) || daysOld < 1) {
+      logError("❌ --cleanup-db must be a positive whole number of days.");
+      return 1;
+    }
+
     try {
       log(`💾 Creating backup before cleanup...`);
       const backupPath = await backupDatabase();

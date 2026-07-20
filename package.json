@@ -1,6 +1,24 @@
 {
   "name": "immich-album-downloader",
-  "version": "1.0.6",
+  "version": "1.0.10",
+  "description": "CLI tool for downloading and backing up Immich albums with resume support, filtering, and Docker support.",
+  "license": "MIT",
+  "author": "Zacky Achmad",
+  "homepage": "https://github.com/zckyachmd/immich-album-downloader#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zckyachmd/immich-album-downloader.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zckyachmd/immich-album-downloader/issues"
+  },
+  "keywords": [
+    "immich",
+    "album",
+    "backup",
+    "downloader",
+    "cli"
+  ],
   "packageManager": "bun@1.2.21",
   "type": "module",
   "bin": {
@@ -21,10 +39,13 @@
     "download:dry": "bun run src/main.ts --dry-run",
     "download:verbose": "bun run src/main.ts --verbose",
     "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun test && bun run typecheck",
     "test": "IMMICH_API_KEY=fake-api-key-for-tests IMMICH_BASE_URL=https://example.com bun test --isolate",
     "test:watch": "IMMICH_API_KEY=fake-api-key-for-tests IMMICH_BASE_URL=https://example.com bun test --watch --isolate"
   },
   "dependencies": {
+    "@inquirer/figures": "^1.0.15",
+    "chalk": "^5.4.1",
     "dotenv": "^16.6.1",
     "inquirer": "^9.3.8",
     "p-limit": "^4.0.0",

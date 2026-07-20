@@ -37,17 +37,59 @@ try {
 
 // Create schema with error handling
 try {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS downloads (
-      asset_id TEXT PRIMARY KEY,
-      album_id TEXT NOT NULL,
-      status TEXT CHECK(status IN ('downloaded', 'failed', 'skip')) NOT NULL,
-      checksum TEXT,
-      target_dir TEXT,
-      downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      error_message TEXT
-    )
-  `);
+  // An asset can belong to multiple albums in Immich. The table must be
+  // keyed on (asset_id, album_id) so a download recorded for one album
+  // doesn't overwrite/erase the record for the same asset in another album.
+  // Older databases were created with asset_id alone as the primary key;
+  // migrate them in place instead of silently losing per-album history.
+  const existingPk = db
+    .prepare("PRAGMA table_info(downloads)")
+    .all()
+    .filter((col) => col.pk > 0);
+  const needsMigration =
+    existingPk.length > 0 && !(existingPk.length === 2 && existingPk.some((c) => c.name === "album_id"));
+
+  if (needsMigration) {
+    db.exec("BEGIN TRANSACTION");
+    try {
+      db.exec("ALTER TABLE downloads RENAME TO downloads_old_pk_migration");
+      db.exec(`
+        CREATE TABLE downloads (
+          asset_id TEXT NOT NULL,
+          album_id TEXT NOT NULL,
+          status TEXT CHECK(status IN ('downloaded', 'failed', 'skip')) NOT NULL,
+          checksum TEXT,
+          target_dir TEXT,
+          downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          error_message TEXT,
+          PRIMARY KEY (asset_id, album_id)
+        )
+      `);
+      db.exec(`
+        INSERT INTO downloads (asset_id, album_id, status, checksum, target_dir, downloaded_at, error_message)
+        SELECT asset_id, album_id, status, checksum, target_dir, downloaded_at, error_message
+        FROM downloads_old_pk_migration
+      `);
+      db.exec("DROP TABLE downloads_old_pk_migration");
+      db.exec("COMMIT");
+    } catch (migrationErr) {
+      db.exec("ROLLBACK");
+      throw migrationErr;
+    }
+  } else {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS downloads (
+        asset_id TEXT NOT NULL,
+        album_id TEXT NOT NULL,
+        status TEXT CHECK(status IN ('downloaded', 'failed', 'skip')) NOT NULL,
+        checksum TEXT,
+        target_dir TEXT,
+        downloaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        error_message TEXT,
+        PRIMARY KEY (asset_id, album_id)
+      )
+    `);
+  }
 
   // Create index for faster queries
   db.exec(`

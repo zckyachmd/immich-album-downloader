@@ -44,15 +44,20 @@ export function setupSignalHandlers() {
     if (cancellationToken.isCancelled()) {
       console.log("\n\n⚠️  Force exit requested. Cleaning up...");
 
+      // Guarantee an exit even if closeDatabase() hangs.
+      const forceExitTimer = setTimeout(() => process.exit(1), 1500);
+      forceExitTimer.unref?.();
+
       import("./db")
         .then(({ closeDatabase }) => {
           try {
             closeDatabase();
           } catch (err) {}
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => process.exit(1));
 
-      throw new CancellationError(`Interrupted by ${signal}`);
+      return;
     }
 
     console.log(`\n\n⚠️  ${signal} received. Gracefully shutting down...`);

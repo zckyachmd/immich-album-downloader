@@ -153,9 +153,7 @@ export async function checkHealth(config: AppConfig) {
           );
         }
 
-        log(
-          `✅ Connected to Immich server${serverInfo || (version !== "connected" ? ` (version: ${version})` : "")}`
-        );
+        (config as any).serverInfo = serverInfo || (version !== "connected" ? ` (version: ${version})` : "");
         return true;
       } catch (fetchError) {
         lastError = fetchError;
@@ -191,13 +189,6 @@ export async function checkHealth(config: AppConfig) {
       err.code === "CERT_HAS_EXPIRED" ||
       err.code === "SELF_SIGNED_CERT_IN_CHAIN"
     ) {
-      if (config.sslVerify) {
-        logError(`⚠️  SSL certificate error: ${err.message}`);
-        logError(`⚠️  Retrying with IMMICH_SSL_VERIFY=false.`);
-        config.sslVerify = false;
-        return checkHealth(config);
-      }
-
       logError(`❌ SSL certificate error: ${err.message}`);
     } else if (err.message.includes("fetch") || err.message.includes("JSON")) {
       logError(`❌ Network/Parse error: ${err.message}`);

@@ -59,6 +59,11 @@ export const commonOptions = {
     default: false,
     describe: "Remove saved Immich config from .env before running setup",
   },
+  "save-config": {
+    type: "boolean",
+    default: false,
+    describe: "Save resolved Immich config to .env after health check passes",
+  },
   force: {
     type: "boolean",
     default: false,
