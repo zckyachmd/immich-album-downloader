@@ -140,30 +140,29 @@ const validateMaxRetries = (value: number): true | string => {
 // UTILITIES - Helper Functions
 // ============================================================================
 
+const ASCII_LOGO = [
+  " ██╗███╗   ███╗███╗   ███╗██╗ ██████╗██╗  ██╗",
+  " ██║████╗ ████║████╗ ████║██║██╔════╝██║  ██║",
+  " ██║██╔████╔██║██╔████╔██║██║██║     ███████║",
+  " ██║██║╚██╔╝██║██║╚██╔╝██║██║██║     ██╔══██║",
+  " ██║██║ ╚═╝ ██║██║ ╚═╝ ██║██║╚██████╗██║  ██║",
+  " ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝",
+];
+
 function printHeader() {
-  const width = 64;
-  const title = "Immich Album Downloader - Configuration";
-  const subtitle = "v1.x • Interactive Setup";
+  const green = (text: string) => chalk.greenBright(text);
 
   console.log("");
-  console.log(colors.bold(colors.primary("╔" + "═".repeat(width - 2) + "╗")));
-  console.log(
-    colors.primary("║") +
-      colors.bold(title.padEnd(width - 2)) +
-      colors.primary("║")
-  );
-  console.log(
-    colors.primary("║") + subtitle.padEnd(width - 2) + colors.primary("║")
-  );
-  console.log(colors.bold(colors.primary("╚" + "═".repeat(width - 2) + "╝")));
+  ASCII_LOGO.forEach((line) => console.log(green(line)));
+  console.log(colors.dim("        [ ALBUM DOWNLOADER // CONFIG WIZARD ]"));
   console.log("");
-
-  const shortcuts =
-    "Ctrl+C to cancel • Tab for next • Enter to confirm • ↑↓ for history";
+  console.log(colors.dim("──────────────────────────────────────────────"));
   console.log(
-    `${indicators.question} ${colors.muted(shortcuts)}`
+    `${indicators.info} ${colors.muted(
+      "ctrl+c cancel · tab next · enter confirm · ↑↓ history"
+    )}`
   );
-  console.log("");
+  console.log(colors.dim("──────────────────────────────────────────────"));
 }
 
 function printSectionHeader(
@@ -217,6 +216,7 @@ function getFieldPrompt(
       return {
         ...basePrompt,
         type: "confirm",
+        default: currentValue === undefined ? true : currentValue,
       };
 
     default: // input
@@ -228,28 +228,6 @@ function getFieldPrompt(
           fieldKey === "baseUrl" ? value.trim() : value,
       };
   }
-}
-
-function getCliEquivalent(fieldKey: string, value: any): string {
-  const field = CONFIG_FIELDS[fieldKey];
-  if (fieldKey === "saveConfig") return "";
-
-  const flagValue =
-    typeof value === "string" ? `"${value}"` : String(value);
-  return `${field.cliFlag} ${flagValue}`;
-}
-
-function printCliTip(fieldKey: string, currentValue: any) {
-  if (fieldKey === "saveConfig") return;
-
-  const field = CONFIG_FIELDS[fieldKey];
-  const equivalentCommand = getCliEquivalent(fieldKey, currentValue);
-
-  console.log(
-    colors.muted(
-      `  ${indicators.hint} Skip this: immich-album-downloader ${equivalentCommand}`
-    )
-  );
 }
 
 // ============================================================================
@@ -294,29 +272,6 @@ export async function promptForConfig(current: any) {
       else if (fieldKey === "saveConfig") promptType = "confirm";
 
       const prompt = getFieldPrompt(fieldKey, fieldConfig, currentValue, promptType);
-
-      // Add custom validation with enhanced feedback
-      if (promptType === "input" && fieldKey === "baseUrl") {
-        prompt.validate = (value: string) => {
-          const result = validateUrl(value);
-          if (result === true) {
-            console.log(`  ${indicators.success} Valid HTTPS URL`);
-          }
-          return result;
-        };
-      }
-
-      if (promptType === "password") {
-        prompt.validate = (value: string) => {
-          const result = validateApiKey(value);
-          if (result === true) {
-            console.log(
-              `  ${indicators.success} API key valid (${value.length} characters)`
-            );
-          }
-          return result;
-        };
-      }
 
       sectionPrompts.push(prompt);
     }
