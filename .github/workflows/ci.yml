@@ -41,12 +41,18 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v5
 
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
 
       - uses: docker/setup-qemu-action@v3
 
@@ -58,28 +64,57 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - id: version
+      - run: bun install --frozen-lockfile
+
+      - id: package
         run: |
-          version=$(bun pm pkg get version | tr -d '"')
+          version=$(jq -r .version package.json)
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "description=$(jq -r .description package.json)" >> "$GITHUB_OUTPUT"
+          echo "license=$(jq -r .license package.json)" >> "$GITHUB_OUTPUT"
+          echo "author=$(jq -r .author package.json)" >> "$GITHUB_OUTPUT"
+          echo "homepage=$(jq -r .homepage package.json)" >> "$GITHUB_OUTPUT"
 
       - uses: docker/metadata-action@v5
         id: meta
         with:
           images: ghcr.io/${{ github.repository }}
           annotations: |
-            org.opencontainers.image.title=immich-album-downloader
-            org.opencontainers.image.description=CLI tool for downloading and backing up Immich albums with resume support, filtering, and Docker support.
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ steps.package.outputs.description }}
+            org.opencontainers.image.url=${{ steps.package.outputs.homepage }}
+            org.opencontainers.image.documentation=${{ steps.package.outputs.homepage }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=${{ steps.package.outputs.license }}
+            org.opencontainers.image.authors=${{ steps.package.outputs.author }}
           labels: |
-            org.opencontainers.image.title=immich-album-downloader
-            org.opencontainers.image.description=CLI tool for downloading and backing up Immich albums with resume support, filtering, and Docker support.
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ steps.package.outputs.description }}
+            org.opencontainers.image.url=${{ steps.package.outputs.homepage }}
+            org.opencontainers.image.documentation=${{ steps.package.outputs.homepage }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=${{ steps.package.outputs.license }}
+            org.opencontainers.image.authors=${{ steps.package.outputs.author }}
             org.opencontainers.image.vendor=${{ github.repository_owner }}
           tags: |
             type=raw,value=latest
-            type=raw,value=${{ steps.version.outputs.version }}
-            type=raw,value=${{ steps.version.outputs.tag }}
+            type=raw,value=${{ steps.package.outputs.version }}
+            type=raw,value=${{ steps.package.outputs.tag }}
             type=sha,prefix=main-
+
+      - id: npm_version_exists
+        run: |
+          if npm view "${{ github.event.repository.name }}@${{ steps.package.outputs.version }}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.npm_version_exists.outputs.exists == 'false'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - uses: docker/build-push-action@v6
         with:
@@ -99,7 +134,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+          if gh release view "${{ steps.package.outputs.tag }}" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -110,12 +145,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > release-notes.md <<'EOF'
-          CLI tool for downloading and backing up Immich albums with resume support, filtering, and Docker support.
+          ${{ steps.package.outputs.description }}
 
-          Docker image: ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }}
+          npm package: https://www.npmjs.com/package/${{ github.event.repository.name }}/v/${{ steps.package.outputs.version }}
+          Docker image: ghcr.io/${{ github.repository }}:${{ steps.package.outputs.tag }}
+          Source: ${{ github.server_url }}/${{ github.repository }}
+          License: ${{ steps.package.outputs.license }}
           EOF
-          gh release create "${{ steps.version.outputs.tag }}" \
+          gh release create "${{ steps.package.outputs.tag }}" \
             --target "$GITHUB_SHA" \
-            --title "${{ steps.version.outputs.tag }}" \
+            --title "${{ steps.package.outputs.tag }}" \
             --notes-file release-notes.md \
             --generate-notes
