@@ -22,8 +22,10 @@ SOFTWARE.
 
 ---
 
-## Note on Immich Project
+## Immich License Compatibility Note
 
-This project is an independent tool that uses the Immich API. It is not affiliated with, endorsed by, or associated with the Immich project.
+This project is an independent client for the Immich API. It is not affiliated with, endorsed by, or associated with the Immich project.
 
-The Immich project is licensed under the GNU Affero General Public License (AGPL) Version 3 (https://github.com/immich-app/immich). This project's license (MIT) is separate and independent. Since this tool only interacts with Immich through its public API and does not include or modify any Immich source code, it can be licensed under MIT while remaining compatible with Immich's AGPL v3 license. This allows for collaborative development while respecting the original Immich project's licensing terms.
+Immich is licensed under GNU Affero General Public License v3.0 (AGPL-3.0). This project does not include, copy, modify, or link against Immich source code. It only communicates with Immich through its public HTTP API.
+
+Because this repository contains independent original code and only uses Immich as an external service, MIT is an appropriate license for this project. If future changes copy Immich source code, modify Immich code, or create a derivative work of Immich, those parts may need to follow AGPL-3.0 requirements.
