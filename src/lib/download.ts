@@ -149,7 +149,7 @@ export async function downloadAlbum(album, outputDir, options = {}) {
   // Show initial progress
   if (!options.dryRun) {
     const sizeInfo = totalBytes > 0 ? ` (${formatFileSize(totalBytes)})` : "";
-    log(`📊 Processing ${total} file(s)${sizeInfo}...`);
+    log(`i Processing ${total} file(s)${sizeInfo}...`);
     logProgress(0, total, {
       downloaded: 0,
       skipped: 0,
@@ -446,19 +446,17 @@ export async function downloadAlbum(album, outputDir, options = {}) {
     return; // Exit early, don't show summary
   }
 
-  // Print summary with enhanced statistics
-  log(`\n📊 Download Summary for "${album.albumName}":`);
-  log(`   ✅ Downloaded: ${downloaded}/${total}`);
-  log(`   ⏩ Skipped: ${skipped}/${total}`);
-  log(`   ❌ Failed: ${failed}/${total}`);
-
-  // Show size information if available
   const effectiveTotalBytes = totalBytes > 0 ? totalBytes : totalBytesFromFiles;
+  log(`\n┌─ Album: ${album.albumName} ─────────────────`);
+  log(`  ✓ Downloaded  ${downloaded}/${total}`);
+  log(`  i Skipped     ${skipped}/${total}`);
+  log(`  ! Failed      ${failed}/${total}`);
   if (effectiveTotalBytes > 0) {
     const downloadedSize = formatFileSize(downloadedBytes + skippedBytes);
     const totalSize = formatFileSize(effectiveTotalBytes);
-    log(`   📦 Size: ${downloadedSize} / ${totalSize}`);
+    log(`  i Size        ${downloadedSize} / ${totalSize}`);
   }
+  log(`└──────────────────────────────────`);
 
   // Show failed items if any
   if (failed > 0) {

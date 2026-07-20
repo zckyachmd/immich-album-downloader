@@ -1,4 +1,5 @@
 // @ts-nocheck
+import chalk from "chalk";
 import figures from "@inquirer/figures";
 import inquirer from "inquirer";
 
@@ -6,6 +7,7 @@ import inquirer from "inquirer";
 // (❯◯), which reads as noisy clutter. Blank it so only the radio shows.
 figures.pointer = "";
 import { writeEnvConfig } from "@/cli/configFile";
+import { promptForConfig } from "@/cli/prompts";
 import { getAlbums, getAssetsByAlbumId } from "@/lib/api";
 import { cancellationToken, setupSignalHandlers } from "@/lib/cancellation";
 import type { AppConfig } from "@/lib/config";
@@ -13,6 +15,15 @@ import { CancellationError, ValidationError } from "@/lib/errors";
 import { expandPath } from "@/lib/helpers";
 import { checkHealth } from "@/lib/health";
 import { log, logError, logWarn } from "@/lib/logger";
+
+const ui = {
+  success: chalk.green("✓"),
+  error: chalk.red("✗"),
+  info: chalk.cyan("i"),
+  warning: chalk.yellow("!"),
+  muted: (text: string) => chalk.gray(text),
+  bold: (text: string) => chalk.bold(text),
+};
 
 export let databaseLoaded = false;
 
@@ -78,14 +89,14 @@ const validateFlags = (options) => {
 const selectTargets = async (options, albums) => {
   if (options.all || options.only) {
     if (options.all) {
-      log(`🛠  --all. ${albums.length} target(s).`);
+      log(`${ui.info} --all selected. ${albums.length} album(s).`);
       return albums;
     }
     if (options["only"]) {
       const filteredAlbums = albums.filter((album) =>
         album.albumName.toLowerCase().includes(options["only"].toLowerCase())
       );
-      log(`🔎 Filtered by "--only": ${filteredAlbums.length} matched`);
+      log(`${ui.info} --only matched ${filteredAlbums.length} album(s).`);
       return filteredAlbums;
     }
   }
@@ -94,7 +105,7 @@ const selectTargets = async (options, albums) => {
     const filteredAlbums = albums.filter(
       (album) => !album.albumName.toLowerCase().includes(options["exclude"].toLowerCase())
     );
-    log(`🔎 Filtered by "--exclude": ${filteredAlbums.length} matched`);
+    log(`${ui.info} --exclude kept ${filteredAlbums.length} album(s).`);
     return filteredAlbums;
   }
 
@@ -102,16 +113,16 @@ const selectTargets = async (options, albums) => {
     {
       type: "checkbox",
       name: "selectedAlbums",
-      message: "🎯 Select album(s) to backup:",
+      message: `${ui.bold("Select albums to backup")}`,
       choices: albums.map((album) => ({
         name: `${album.albumName} (${album.assetCount} items)`,
         value: album,
       })),
-      validate: (value) => (value.length > 0 ? true : "Please select at least one album"),
+      validate: (value) => (value.length > 0 ? true : `${ui.error} Select at least one album`),
     },
   ]);
 
-  log(`🧠 Selected ${selectedAlbums.length} album(s) via prompt.`);
+  log(`${ui.success} Selected ${selectedAlbums.length} album(s).`);
   return selectedAlbums;
 };
 
@@ -124,10 +135,18 @@ export const runDownloader = async (options, config: AppConfig) => {
 
   const resolvedOutputDir = expandPath(options.output ?? config.defaultOutput);
 
-  log("Checking connection to Immich server...");
-  const isHealthy = await checkHealth(config);
-  if (!isHealthy) {
-    throw new ValidationError("💥 Cannot proceed without a valid connection to Immich server.");
+  while (true) {
+    log(`${ui.info} Checking connection to Immich server...`);
+    const isHealthy = await checkHealth(config);
+    if (isHealthy) break;
+
+    if (options.interactive === false || !process.stdin.isTTY) {
+      throw new ValidationError("Cannot proceed without a valid connection to Immich server.");
+    }
+
+    logWarn(`${ui.warning} Connection failed. Update server URL or API key.`);
+    const retryConfig = await promptForConfig(config, { connectionOnly: true });
+    Object.assign(config, retryConfig);
   }
 
   if (config.saveConfig) writeEnvConfig(config);
@@ -135,55 +154,58 @@ export const runDownloader = async (options, config: AppConfig) => {
   const concurrency = options["concurrency"] ?? config.concurrency;
   const maxRetries = options["max-retries"] ?? config.maxRetries;
 
-  log(`Configuration:`);
-  log(`-- Output directory: ${resolvedOutputDir}${options.output ? " (CLI)" : " (from .env)"}`);
-  if (options["limit-size"]) log(`-- Limit size: ${options["limit-size"]} MB`);
-  if (options.force) log(`-- Override existing files: enabled`);
-  log("Press Ctrl+C to cancel gracefully\n", "info");
+  log("");
+  log(ui.muted("┌─ Immich ─────────────────────────"));
+  log(`  ${ui.success} Server connected${(config as any).serverInfo ?? ""}`);
+  log(`  ${ui.info} Output  ${resolvedOutputDir}${options.output ? " (CLI)" : ""}`);
+  if (options["limit-size"]) log(`  ${ui.info} Limit   ${options["limit-size"]} MB`);
+  if (options.force) log(`  ${ui.info} Force   enabled`);
+  log(ui.muted("└──────────────────────────────────"));
+  log(`${ui.info} Ctrl+C cancel\n`, "info");
 
   const albums = await getAlbums(config);
   if (!albums.length) {
-    logWarn("🚫 No albums found.");
+    logWarn(`${ui.warning} No albums found.`);
     return;
   }
 
   const sortedAlbums = albums.sort((a, b) => a.albumName.localeCompare(b.albumName));
   const targets = await selectTargets(options, sortedAlbums);
   if (!targets.length) {
-    logWarn("🚫 No album selected. Exiting.");
+    logWarn(`${ui.warning} No album selected. Exiting.`);
     return;
   }
 
   for (const [i, album] of targets.entries()) {
     if (cancellationToken.isCancelled()) {
-      logWarn(`\n⚠️  Download cancelled. Processed ${i}/${targets.length} album(s).`);
+      logWarn(`\n${ui.warning} Download cancelled. Processed ${i}/${targets.length} album(s).`);
       break;
     }
 
     log(
-      `\n💾 [${i + 1}/${targets.length}] ${
-        options["dry-run"] ? "[DRY RUN] Simulating download for" : "Downloading"
-      } ${album.albumName}${options["resume-failed"] ? " (Resume)" : ""}`
+      `\n${ui.info} [${i + 1}/${targets.length}] ${
+        options["dry-run"] ? "Dry run" : "Downloading"
+      }: ${album.albumName}${options["resume-failed"] ? " (resume)" : ""}`
     );
 
     try {
       const assets = await getAssetsByAlbumId(config, album.id);
       if (!assets.length) {
-        logWarn(`🚫 Album "${album.albumName}" empty, skip.`);
+        logWarn(`${ui.warning} Album "${album.albumName}" empty. Skipping.`);
         continue;
       }
       album.assets = assets;
     } catch (err) {
       if (cancellationToken.isCancelled()) {
-        logWarn(`\n⚠️  Download cancelled while fetching album "${album.albumName}".`);
+        logWarn(`\n${ui.warning} Download cancelled while fetching album "${album.albumName}".`);
         break;
       }
-      logError(`💥 Failed fetch album from ${album.albumName}: ${err.message}`);
+      logError(`${ui.error} Failed to fetch album "${album.albumName}": ${err.message}`);
       continue;
     }
 
     if (options["dry-run"]) {
-      log(`🧪 Dry run: ${album.assets.length} asset(s) found, no files downloaded.`);
+      log(`${ui.info} Dry run: ${album.assets.length} asset(s) found. No files downloaded.`);
       continue;
     }
 
@@ -202,21 +224,21 @@ export const runDownloader = async (options, config: AppConfig) => {
       });
     } catch (err) {
       if (err.name === "CancellationError" || cancellationToken.isCancelled()) {
-        logWarn(`\n⚠️  Download cancelled during album "${album.albumName}".`);
+        logWarn(`\n${ui.warning} Download cancelled during album "${album.albumName}".`);
         break;
       }
       throw err;
     }
 
     if (cancellationToken.isCancelled()) {
-      logWarn(`\n⚠️  Download cancelled. Completed ${i + 1}/${targets.length} album(s).`);
+      logWarn(`\n${ui.warning} Download cancelled. Completed ${i + 1}/${targets.length} album(s).`);
       break;
     }
   }
 
   if (cancellationToken.isCancelled()) {
-    logWarn("\n⚠️  Download process was cancelled by user.");
-    logWarn("💡 Progress has been saved. Use --resume-failed to continue where you left off.\n");
+    logWarn(`\n${ui.warning} Download cancelled by user.`);
+    logWarn(`${ui.info} Progress saved. Use --resume-failed to continue.\n`);
     throw new CancellationError();
   }
 
@@ -224,22 +246,23 @@ export const runDownloader = async (options, config: AppConfig) => {
     try {
       const { getDatabaseStats } = await import("../lib/db");
       const dbStats = await getDatabaseStats();
-      log("\n📊 Overall Database Statistics:");
-      log(`   Total records: ${dbStats.total}`);
-      log(`   ✅ Downloaded: ${dbStats.downloaded}`);
-      log(`   ⏩ Skipped: ${dbStats.skipped}`);
-      log(`   ❌ Failed: ${dbStats.failed}`);
+      log(`\n${ui.muted("┌─ Database ───────────────────────")}`);
+      log(`  ${ui.info} Total       ${dbStats.total}`);
+      log(`  ${ui.success} Downloaded  ${dbStats.downloaded}`);
+      log(`  ${ui.info} Skipped     ${dbStats.skipped}`);
+      log(`  ${ui.warning} Failed      ${dbStats.failed}`);
       if (dbStats.failed > 0) {
-        log(`   💡 Use --resume-failed to retry failed downloads`);
+        log(`  ${ui.info} Use --resume-failed to retry failed downloads`);
       }
+      log(ui.muted("└──────────────────────────────────"));
     } catch (err) {
-      logWarn(`⚠️  Could not retrieve database statistics: ${err.message}`);
+      logWarn(`${ui.warning} Could not retrieve database statistics: ${err.message}`);
     }
   }
 
   log(
     options["dry-run"]
-      ? "\n🧪 Dry run completed. No files were downloaded.\n"
-      : "\n✅ Backup completed. Please check the output directory & logs if anything went wrong.\n"
+      ? `\n${ui.success} Dry run complete. No files downloaded.\n`
+      : `\n${ui.success} Backup complete.\n`
   );
 };

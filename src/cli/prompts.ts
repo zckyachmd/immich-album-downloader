@@ -19,9 +19,9 @@ const indicators = {
   success: colors.success("✓"),
   error: colors.error("✗"),
   question: colors.primary("?"),
-  info: colors.primary("ℹ"),
+  info: colors.primary("i"),
   warning: colors.warning("!"),
-  hint: "→",
+  hint: colors.primary("→"),
 };
 
 // ============================================================================
@@ -40,7 +40,7 @@ interface FieldConfig {
 
 const CONFIG_FIELDS: Record<string, FieldConfig> = {
   baseUrl: {
-    label: "Immich server base URL",
+    label: "Server URL",
     section: "Server Configuration",
     sectionIndicator: "REQUIRED",
     help: "Complete URL to your Immich server",
@@ -49,7 +49,7 @@ const CONFIG_FIELDS: Record<string, FieldConfig> = {
     example: "https://immich.example.com",
   },
   apiKey: {
-    label: "Immich API key",
+    label: "API key",
     section: "Server Configuration",
     sectionIndicator: "REQUIRED",
     help: "Find this in Immich Settings → Utilities → API Keys",
@@ -58,31 +58,13 @@ const CONFIG_FIELDS: Record<string, FieldConfig> = {
     example: "abcd1234567890",
   },
   defaultOutput: {
-    label: "Download output directory",
+    label: "Output folder",
     section: "Download Settings",
     sectionIndicator: "OPTIONAL",
     help: "Where to save downloaded files",
     cliFlag: "--output",
     hints: ["Relative or absolute path", "Directory will be created if needed"],
     example: "./downloads",
-  },
-  concurrency: {
-    label: "Concurrent downloads",
-    section: "Download Settings",
-    sectionIndicator: "OPTIONAL",
-    help: "How many files to download at the same time",
-    cliFlag: "--concurrency",
-    hints: ["Range: 1-50", "Recommended: 3-10 for stable connections"],
-    example: "5",
-  },
-  maxRetries: {
-    label: "Maximum retry attempts",
-    section: "Download Settings",
-    sectionIndicator: "OPTIONAL",
-    help: "Retry failed downloads this many times",
-    cliFlag: "--max-retries",
-    hints: ["Range: 0-10", "Increase for unreliable networks"],
-    example: "3",
   },
   saveConfig: {
     label: "Save configuration to .env",
@@ -141,42 +123,40 @@ const validateMaxRetries = (value: number): true | string => {
 // ============================================================================
 
 const ASCII_LOGO = [
-  "        ___",
-  "       /   \\",
-  "   ___/_____\\___",
-  "  |             |",
-  "  |   .-----.   |",
-  "  |  (   o   )  |",
-  "  |   '-----'   |",
-  "  |_____________|",
+  "  ██╗███╗   ███╗███╗   ███╗██╗ ██████╗██╗  ██╗",
+  "  ██║████╗ ████║████╗ ████║██║██╔════╝██║  ██║",
+  "  ██║██╔████╔██║██╔████╔██║██║██║     ███████║",
+  "  ██║██║╚██╔╝██║██║╚██╔╝██║██║██║     ██╔══██║",
+  "  ██║██║ ╚═╝ ██║██║ ╚═╝ ██║██║╚██████╗██║  ██║",
+  "  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝",
 ];
+
+const MINI_LOGO = "IMD";
+
+function printDivider() {
+  console.log(colors.dim("─".repeat(36)));
+}
 
 function printHeader() {
   const green = (text: string) => chalk.greenBright(text);
 
   console.log("");
   ASCII_LOGO.forEach((line) => console.log(green(line)));
-  console.log(colors.dim("   [ ALBUM DOWNLOADER // CONFIG WIZARD ]"));
   console.log("");
-  console.log(colors.dim("──────────────────────────────────────────────"));
-  console.log(
-    `${indicators.info} ${colors.muted(
-      "ctrl+c cancel · tab next · enter confirm · ↑↓ history"
-    )}`
-  );
-  console.log(colors.dim("──────────────────────────────────────────────"));
+  console.log(colors.bold("Album backup setup"));
+  console.log(colors.muted("Ctrl+C cancel · Enter confirm"));
 }
 
 function printSectionHeader(
   sectionName: string,
   indicator: "REQUIRED" | "OPTIONAL"
 ) {
-  const indicatorColor =
-    indicator === "REQUIRED" ? colors.error : colors.muted;
-  const header = `${sectionName} ${indicatorColor(`[${indicator}]`)}`;
+  const indicatorColor = indicator === "REQUIRED" ? colors.error : colors.muted;
+  const header = `${colors.primary(MINI_LOGO)}  ${colors.bold(sectionName)}  ${indicatorColor(indicator.toLowerCase())}`;
   console.log("");
-  console.log(colors.bold(header));
-  console.log(colors.muted("─".repeat(60)));
+  printDivider();
+  console.log(header);
+  console.log("");
 }
 
 function getFieldPrompt(
@@ -185,8 +165,7 @@ function getFieldPrompt(
   currentValue: any,
   type: "input" | "password" | "number" | "confirm" = "input"
 ) {
-  const badge = `[${fieldConfig.sectionIndicator === "REQUIRED" ? colors.error("REQUIRED") : colors.muted("OPTIONAL")}]`;
-  const message = `${badge} ${fieldConfig.label}`;
+  const message = fieldConfig.label;
 
   const basePrompt: any = {
     name: fieldKey,
@@ -215,13 +194,10 @@ function getFieldPrompt(
       };
 
     case "confirm":
-      // saveConfig's "current" value is argv["save-config"], which yargs
-      // defaults to false when the flag isn't passed. That default carries
-      // no user intent, so the prompt always defaults to yes regardless.
       return {
         ...basePrompt,
         type: "confirm",
-        default: true,
+        default: fieldKey === "saveConfig" ? true : currentValue,
       };
 
     default: // input
@@ -239,8 +215,8 @@ function getFieldPrompt(
 // MAIN EXPORT - Configuration Wizard
 // ============================================================================
 
-export async function promptForConfig(current: any) {
-  printHeader();
+export async function promptForConfig(current: any, options: { connectionOnly?: boolean } = {}) {
+  if (!options.connectionOnly) printHeader();
 
   // Group fields by section, preserving CONFIG_FIELDS declaration order
   const fieldsBySection = Object.entries(CONFIG_FIELDS).reduce(
@@ -260,12 +236,9 @@ export async function promptForConfig(current: any) {
     for (const fieldConfig of fields) {
       const fieldKey = fieldConfig.key;
       const currentValue = current[fieldKey];
-      const shouldPrompt =
-        fieldKey === "saveConfig" ||
-        fieldKey === "defaultOutput" ||
-        fieldKey === "concurrency" ||
-        fieldKey === "maxRetries" ||
-        !currentValue;
+      const shouldPrompt = options.connectionOnly
+        ? fieldKey === "baseUrl" || fieldKey === "apiKey"
+        : fieldKey === "saveConfig" || fieldKey === "defaultOutput" || !currentValue;
 
       if (!shouldPrompt) continue;
 
@@ -283,17 +256,20 @@ export async function promptForConfig(current: any) {
 
     if (sectionPrompts.length === 0) continue;
 
-    printSectionHeader(section, fields[0].sectionIndicator);
+    printSectionHeader(options.connectionOnly ? "Fix Connection" : section, fields[0].sectionIndicator);
     const sectionAnswers = await inquirer.prompt(sectionPrompts, answers);
     answers = { ...answers, ...sectionAnswers };
   }
 
   // Print completion message
-  console.log("");
-  console.log(
-    `${indicators.success} ${colors.success("Configuration complete!")}`
-  );
-  console.log("");
+  if (!options.connectionOnly) {
+    console.log("");
+    printDivider();
+    console.log(
+      `${colors.primary(MINI_LOGO)}  ${indicators.success} ${colors.success("Configuration complete!")}`
+    );
+    console.log("");
+  }
 
   return answers;
 }
