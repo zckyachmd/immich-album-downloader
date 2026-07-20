@@ -1,6 +1,6 @@
 {
   "name": "immich-album-downloader",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "CLI tool for downloading and backing up Immich albums with resume support, filtering, and Docker support.",
   "license": "MIT",
   "author": "Zacky Achmad",
@@ -44,13 +44,13 @@
     "test:watch": "IMMICH_API_KEY=fake-api-key-for-tests IMMICH_BASE_URL=https://example.com bun test --watch --isolate"
   },
   "dependencies": {
+    "chalk": "^5.6.0",
     "dotenv": "^16.6.1",
     "inquirer": "^9.3.8",
-    "p-limit": "^4.0.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "^1.2.21",
     "@types/yargs": "^17.0.33",
     "typescript": "^5.9.2"
   }

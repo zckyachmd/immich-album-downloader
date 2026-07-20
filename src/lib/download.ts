@@ -1,7 +1,6 @@
 // @ts-nocheck
 import fs from "fs";
 import path from "path";
-import pLimit from "p-limit";
 import readline from "readline";
 import { downloadAssetById } from "./api";
 import { log, logError, logProgress, logWarn, resetProgressTracking } from "./logger";
@@ -159,7 +158,7 @@ export async function downloadAlbum(album, outputDir, options = {}) {
     });
   }
 
-  const limit = pLimit(options.concurrencyLimit || 5);
+  const concurrencyLimit = options.concurrencyLimit || 5;
 
   const sizeLimitInBytes = options.limitSize ? options.limitSize * 1024 * 1024 : Infinity;
 
@@ -180,8 +179,11 @@ export async function downloadAlbum(album, outputDir, options = {}) {
     filenameByAssetId.set(asset.id, safeFilename);
   }
 
-  const tasks = assetsToDownload.map((asset) =>
-    limit(async () => {
+  let nextAssetIndex = 0;
+  const runNextAsset = async () => {
+    const asset = assetsToDownload[nextAssetIndex++];
+    if (!asset) return;
+
       // Check for cancellation before starting download
       cancellationToken.throwIfCancelled();
 
@@ -430,12 +432,14 @@ export async function downloadAlbum(album, outputDir, options = {}) {
         downloadedBytes: downloadedBytes + skippedBytes,
         totalBytes: effectiveTotalBytes,
       });
-    })
-  );
+    await runNextAsset();
+  };
 
   // Wait for all tasks with cancellation support
   try {
-    await Promise.all(tasks);
+    await Promise.all(
+      Array.from({ length: Math.min(concurrencyLimit, assetsToDownload.length) }, runNextAsset)
+    );
   } catch (err) {
     if (err.name === "CancellationError") {
       // Cancellation requested - don't treat as error
