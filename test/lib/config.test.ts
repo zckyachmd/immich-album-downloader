@@ -38,7 +38,7 @@ describe("config", () => {
     expect(config).toEqual({
       apiKey: "fake-api-key-for-tests",
       baseUrl: "https://example.com",
-      sslVerify: false,
+      sslVerify: true,
       concurrency: 5,
       maxRetries: 3,
       downloadTimeout: 30000,
@@ -129,10 +129,19 @@ describe("config", () => {
     expect(fs.readFileSync(".env", "utf8")).toBe("UNKNOWN=kept\n");
   });
 
-  test("allows HTTP in production", () => {
+  test("blocks HTTP in production by default", () => {
+    expect(() =>
+      validateConfig(
+        { apiKey: env.IMMICH_API_KEY, baseUrl: "http://example.com/api" },
+        { NODE_ENV: "production" }
+      )
+    ).toThrow("IMMICH_BASE_URL must use HTTPS in production environment");
+  });
+
+  test("allows HTTP when IMMICH_ALLOW_INSECURE_HTTP=true", () => {
     const config = validateConfig(
       { apiKey: env.IMMICH_API_KEY, baseUrl: "http://immich-server:2283/api" },
-      { NODE_ENV: "production" }
+      { NODE_ENV: "production", IMMICH_ALLOW_INSECURE_HTTP: "true" }
     );
     expect(config.baseUrl).toBe("http://immich-server:2283/api");
   });

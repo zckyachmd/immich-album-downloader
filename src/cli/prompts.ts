@@ -66,6 +66,24 @@ const CONFIG_FIELDS: Record<string, FieldConfig> = {
     hints: ["Relative or absolute path", "Directory will be created if needed"],
     example: "./downloads",
   },
+  concurrency: {
+    label: "Concurrent downloads",
+    section: "Download Settings",
+    sectionIndicator: "OPTIONAL",
+    help: "How many files to download in parallel",
+    cliFlag: "--concurrency",
+    hints: ["Range: 1-50"],
+    example: "5",
+  },
+  maxRetries: {
+    label: "Max retries",
+    section: "Download Settings",
+    sectionIndicator: "OPTIONAL",
+    help: "How many times to retry a failed download",
+    cliFlag: "--max-retries",
+    hints: ["Range: 0-10"],
+    example: "3",
+  },
   saveConfig: {
     label: "Save configuration to .env",
     section: "Persistence",
@@ -238,7 +256,11 @@ export async function promptForConfig(current: any, options: { connectionOnly?: 
       const currentValue = current[fieldKey];
       const shouldPrompt = options.connectionOnly
         ? fieldKey === "baseUrl" || fieldKey === "apiKey"
-        : fieldKey === "saveConfig" || fieldKey === "defaultOutput" || !currentValue;
+        : fieldKey === "saveConfig" ||
+          fieldKey === "defaultOutput" ||
+          fieldKey === "concurrency" ||
+          fieldKey === "maxRetries" ||
+          !currentValue;
 
       if (!shouldPrompt) continue;
 

@@ -163,12 +163,29 @@ export async function downloadAlbum(album, outputDir, options = {}) {
 
   const sizeLimitInBytes = options.limitSize ? options.limitSize * 1024 * 1024 : Infinity;
 
+  // Assets can share the same originalFileName (duplicates, live-photo pairs,
+  // camera filename resets). Without dedup, colliding assets overwrite each
+  // other's file on disk while each still gets its own "downloaded" DB row,
+  // making the count and disk contents diverge and never converge on resume.
+  const usedFilenames = new Set();
+  const filenameByAssetId = new Map();
+  for (const asset of assetsToDownload) {
+    let safeFilename = sanitizeName(asset.originalFileName || `unnamed-${asset.id}`);
+    if (usedFilenames.has(safeFilename)) {
+      const ext = path.extname(safeFilename);
+      const base = safeFilename.slice(0, safeFilename.length - ext.length);
+      safeFilename = `${base}-${asset.id.slice(0, 8)}${ext}`;
+    }
+    usedFilenames.add(safeFilename);
+    filenameByAssetId.set(asset.id, safeFilename);
+  }
+
   const tasks = assetsToDownload.map((asset) =>
     limit(async () => {
       // Check for cancellation before starting download
       cancellationToken.throwIfCancelled();
 
-      const safeFilename = sanitizeName(asset.originalFileName || `unnamed-${asset.id}`);
+      const safeFilename = filenameByAssetId.get(asset.id);
       const outputFilePath = path.join(albumDir, safeFilename);
 
       const fileChecksum = asset.checksum;

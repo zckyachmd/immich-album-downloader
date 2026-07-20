@@ -16,7 +16,7 @@ export type AppConfig = {
 
 const defaults = {
   defaultOutput: "./downloads",
-  sslVerify: false,
+  sslVerify: true,
   concurrency: 5,
   maxRetries: 3,
   downloadTimeout: 30000,
@@ -70,6 +70,16 @@ export function validateConfig(input: Partial<AppConfig>, env = process.env): Ap
     baseUrl = new URL(input.baseUrl);
   } catch (e) {
     throw new ConfigurationError(`IMMICH_BASE_URL must be a valid URL. Got: ${input.baseUrl}`);
+  }
+
+  if (env.NODE_ENV === "production" && baseUrl.protocol !== "https:") {
+    const allowInsecure = env.IMMICH_ALLOW_INSECURE_HTTP === "true";
+
+    if (!allowInsecure) {
+      throw new ConfigurationError(
+        "IMMICH_BASE_URL must use HTTPS in production environment. Set IMMICH_ALLOW_INSECURE_HTTP=true to allow HTTP for internal/private networks."
+      );
+    }
   }
 
   const config = {
