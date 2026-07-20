@@ -115,15 +115,11 @@ export const runDownloader = async (options, config: AppConfig) => {
 
   setupSignalHandlers();
 
-  log("📸 Immich Album Downloader\n");
-  log("💡 Press Ctrl+C to cancel gracefully\n", "info");
-
   validateFlags(options);
 
   const resolvedOutputDir = expandPath(options.output ?? config.defaultOutput);
-  log(`📂 Output directory resolved: ${resolvedOutputDir}`, "info");
 
-  log("🔍 Checking connection to Immich server...");
+  log("Checking connection to Immich server...");
   const isHealthy = await checkHealth(config);
   if (!isHealthy) {
     throw new ValidationError("💥 Cannot proceed without a valid connection to Immich server.");
@@ -134,12 +130,13 @@ export const runDownloader = async (options, config: AppConfig) => {
   const concurrency = options["concurrency"] ?? config.concurrency;
   const maxRetries = options["max-retries"] ?? config.maxRetries;
 
-  log(`🔧 Configuration:`);
-  if (options["limit-size"]) log(`-- Limit size: ${options["limit-size"]} MB`);
+  log(`Configuration:`);
+  log(`-- Output directory: ${resolvedOutputDir}${options.output ? " (CLI)" : " (from .env)"}`);
   log(`-- Concurrency: ${concurrency}${options["concurrency"] ? " (CLI)" : " (from .env)"}`);
   log(`-- Max retries: ${maxRetries}${options["max-retries"] ? " (CLI)" : " (from .env)"}`);
-  log(`-- Output directory: ${resolvedOutputDir}${options.output ? " (CLI)" : " (from .env)"}`);
+  if (options["limit-size"]) log(`-- Limit size: ${options["limit-size"]} MB`);
   if (options.force) log(`-- Override existing files: enabled`);
+  log("Press Ctrl+C to cancel gracefully\n", "info");
 
   const albums = await getAlbums(config);
   if (!albums.length) {

@@ -141,12 +141,9 @@ const validateMaxRetries = (value: number): true | string => {
 // ============================================================================
 
 const ASCII_LOGO = [
-  " ██╗███╗   ███╗███╗   ███╗██╗ ██████╗██╗  ██╗",
-  " ██║████╗ ████║████╗ ████║██║██╔════╝██║  ██║",
-  " ██║██╔████╔██║██╔████╔██║██║██║     ███████║",
-  " ██║██║╚██╔╝██║██║╚██╔╝██║██║██║     ██╔══██║",
-  " ██║██║ ╚═╝ ██║██║ ╚═╝ ██║██║╚██████╗██║  ██║",
-  " ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝╚═╝ ╚═════╝╚═╝  ╚═╝",
+  "   ┌───────────────┐",
+  "   │ ▓▓▓  ◉  ▓▓▓  │",
+  "   └───────────────┘",
 ];
 
 function printHeader() {
@@ -154,7 +151,7 @@ function printHeader() {
 
   console.log("");
   ASCII_LOGO.forEach((line) => console.log(green(line)));
-  console.log(colors.dim("        [ ALBUM DOWNLOADER // CONFIG WIZARD ]"));
+  console.log(colors.dim("   [ ALBUM DOWNLOADER // CONFIG WIZARD ]"));
   console.log("");
   console.log(colors.dim("──────────────────────────────────────────────"));
   console.log(
@@ -213,10 +210,13 @@ function getFieldPrompt(
       };
 
     case "confirm":
+      // saveConfig's "current" value is argv["save-config"], which yargs
+      // defaults to false when the flag isn't passed. That default carries
+      // no user intent, so the prompt always defaults to yes regardless.
       return {
         ...basePrompt,
         type: "confirm",
-        default: currentValue === undefined ? true : currentValue,
+        default: true,
       };
 
     default: // input
