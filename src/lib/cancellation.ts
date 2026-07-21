@@ -39,7 +39,12 @@ class CancellationToken {
 
 export const cancellationToken = new CancellationToken();
 
+let signalHandlersRegistered = false;
+
 export function setupSignalHandlers() {
+  if (signalHandlersRegistered) return;
+  signalHandlersRegistered = true;
+
   const gracefulShutdown = (signal: string) => {
     if (cancellationToken.isCancelled()) {
       console.log("\n\n⚠️  Force exit requested. Cleaning up...");

@@ -62,6 +62,10 @@ export function validatePathWithinBase(filePath, baseDir) {
   return resolved;
 }
 
+export function isInteractive(argv) {
+  return Boolean(process.stdin.isTTY) && argv?.["interactive"] !== false;
+}
+
 export const calculateFileHash = (filePath) => {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash("sha1");

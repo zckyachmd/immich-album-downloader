@@ -24,7 +24,7 @@ const checkFileExistence = async (filePath, expectedChecksum, assetId, albumId, 
     const decodedChecksum = Buffer.from(expectedChecksum, "base64");
 
     if (currentHashBuffer.equals(decodedChecksum)) {
-      const stats = fs.statSync(filePath);
+      const stats = await fs.promises.stat(filePath);
       if (stats.size > 0) {
         const alreadyInDb = await assetAlreadyDownloaded(
           assetId,
@@ -224,7 +224,7 @@ export async function downloadAlbum(album, outputDir, options = {}) {
           asset.exifInfo?.fileSizeInByte || asset.size || asset.fileSize || asset.originalSize || 0;
         let fileSize = assetSize;
         try {
-          const stats = fs.statSync(validatedFilePath);
+          const stats = await fs.promises.stat(validatedFilePath);
           fileSize = stats.size; // Use actual file size (more accurate)
           if (totalBytes === 0) {
             totalBytesFromFiles += fileSize;
@@ -348,7 +348,7 @@ export async function downloadAlbum(album, outputDir, options = {}) {
             asset.originalSize ||
             0;
           try {
-            const stats = fs.statSync(validatedFilePath);
+            const stats = await fs.promises.stat(validatedFilePath);
             fileSize = stats.size; // Use actual file size (most accurate)
             if (totalBytes === 0) {
               // If we don't have total from API, accumulate from actual files

@@ -2,6 +2,7 @@ import { config as loadDotenv } from "dotenv";
 import { resetEnvConfig } from "../cli/configFile";
 import { promptForConfig } from "../cli/prompts";
 import { ConfigurationError } from "./errors";
+import { isInteractive } from "./helpers";
 
 export type AppConfig = {
   apiKey: string;
@@ -130,7 +131,7 @@ export async function resolveConfig(argv = {}, env = process.env): Promise<AppCo
     saveConfig: argv["save-config"],
   };
 
-  if ((!merged.apiKey || !merged.baseUrl) && process.stdin.isTTY && argv["interactive"] !== false) {
+  if ((!merged.apiKey || !merged.baseUrl) && isInteractive(argv)) {
     const prompted = await promptForConfig(merged);
     const config = validateConfig({ ...merged, ...prompted }, env);
     config.saveConfig = prompted.saveConfig;

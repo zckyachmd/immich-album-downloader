@@ -5,7 +5,7 @@ import { getAlbums, getAssetsByAlbumId } from "../lib/api";
 import { cancellationToken, setupSignalHandlers } from "../lib/cancellation";
 import type { AppConfig } from "../lib/config";
 import { CancellationError, ValidationError } from "../lib/errors";
-import { expandPath } from "../lib/helpers";
+import { expandPath, isInteractive } from "../lib/helpers";
 import { checkHealth } from "../lib/health";
 import { log, logError, logWarn } from "../lib/logger";
 
@@ -91,6 +91,13 @@ const selectTargets = async (options, albums) => {
     );
     log(`🔎 Filtered by "--exclude": ${filteredAlbums.length} matched`);
     return filteredAlbums;
+  }
+
+  if (!isInteractive(options)) {
+    throw new ValidationError(
+      "❌ No album selected and no TTY to prompt (non-interactive run). Use --all, --only <name>, or --exclude <name>.",
+      "album-selection"
+    );
   }
 
   const { selectedAlbums } = await inquirer.prompt([
