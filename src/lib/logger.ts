@@ -1,4 +1,3 @@
-// @ts-nocheck
 import fs from "fs";
 import path from "path";
 import readline from "readline";
@@ -7,10 +6,20 @@ import { expandPath, formatFileSize, formatDuration } from "./helpers";
 const LOG_DIR = expandPath("data");
 const LOG_PATH = path.join(LOG_DIR, "immich-album-downloader.log");
 
-let isVerbose = false;
+type LogLevel = "info" | "warn" | "error";
+type LogMessage = string | string[];
 
-export function setVerbose(value) {
-  isVerbose = value;
+interface LogOptions {
+  verbose?: boolean;
+  silent?: boolean;
+}
+
+interface ProgressStats {
+  downloaded?: number;
+  skipped?: number;
+  failed?: number;
+  downloadedBytes?: number;
+  totalBytes?: number;
 }
 
 if (!fs.existsSync(LOG_DIR)) {
@@ -21,17 +30,12 @@ if (!fs.existsSync(LOG_DIR)) {
 if (fs.existsSync(LOG_PATH)) {
   try {
     fs.chmodSync(LOG_PATH, 0o600);
-  } catch (err) {
+  } catch {
     // Ignore if file doesn't exist yet or permission error
   }
 }
 
-/**
- * Sanitizes sensitive data from log messages
- * @param {string} message - The message to sanitize
- * @returns {string} Sanitized message
- */
-function sanitizeForLogging(message) {
+function sanitizeForLogging(message: unknown): string {
   if (typeof message !== "string") {
     return String(message);
   }
@@ -51,12 +55,12 @@ function sanitizeForLogging(message) {
   return sanitized;
 }
 
-export const log = (message, level = "info", options = {}) => {
+export const log = (message: LogMessage, level: LogLevel = "info", options: LogOptions = {}): void => {
   const { verbose = false, silent = false } = options;
   const timestamp = new Date().toISOString();
   const levelUpper = level.toUpperCase();
 
-  const sanitize = (text) => {
+  const sanitize = (text: unknown): string => {
     const input = sanitizeForLogging(text).toString();
     let output = "";
     let pendingSpace = false;
@@ -75,8 +79,8 @@ export const log = (message, level = "info", options = {}) => {
     return output;
   };
 
-  const printToConsole = (text, level) => {
-    const importantLevels = ["info", "warn", "error"];
+  const printToConsole = (text: string, level: LogLevel): void => {
+    const importantLevels: LogLevel[] = ["info", "warn", "error"];
     const isImportant = importantLevels.includes(level);
     const shouldPrint = !silent && (verbose || isImportant);
 
@@ -111,7 +115,7 @@ export const log = (message, level = "info", options = {}) => {
     if (fs.existsSync(LOG_PATH)) {
       fs.chmodSync(LOG_PATH, 0o600);
     }
-  } catch (err) {
+  } catch {
     // Ignore permission errors
   }
 };
@@ -121,20 +125,20 @@ let lastProgressUpdate = 0;
 const PROGRESS_UPDATE_INTERVAL = 100; // Update every 100ms max
 
 // Track download speed calculation
-let speedHistory = [];
+let speedHistory: number[] = [];
 const SPEED_HISTORY_SIZE = 10; // Keep last 10 measurements
-let startTime = null;
+let startTime: number | null = null;
 let lastBytesDownloaded = 0;
-let lastUpdateTime = null;
+let lastUpdateTime: number | null = null;
 
-export function resetProgressTracking() {
+export function resetProgressTracking(): void {
   speedHistory = [];
   startTime = null;
   lastBytesDownloaded = 0;
   lastUpdateTime = null;
 }
 
-export function logProgress(current, total, stats = {}) {
+export function logProgress(current: number, total: number, stats: ProgressStats = {}): void {
   if (total <= 0) return;
 
   // Rate limit progress updates to avoid flickering
@@ -156,7 +160,7 @@ export function logProgress(current, total, stats = {}) {
   const barWidth = 20;
   const filled = Math.floor((percent / 100) * barWidth);
   const bar = "█".repeat(filled) + "░".repeat(barWidth - filled);
-  const { downloaded = 0, skipped = 0, failed = 0, downloadedBytes = 0, totalBytes = 0 } = stats;
+  const { downloaded = 0, skipped = 0, failed = 0, totalBytes = 0 } = stats;
 
   // Calculate download speed
   let speed = 0;
@@ -225,5 +229,7 @@ export function logProgress(current, total, stats = {}) {
   process.stdout.write(progressLine);
 }
 
-export const logError = (message, options = {}) => log(message, "error", options);
-export const logWarn = (message, options = {}) => log(message, "warn", options);
+export const logError = (message: LogMessage, options: LogOptions = {}): void =>
+  log(message, "error", options);
+export const logWarn = (message: LogMessage, options: LogOptions = {}): void =>
+  log(message, "warn", options);

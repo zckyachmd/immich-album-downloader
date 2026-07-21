@@ -2,10 +2,10 @@ import { parseArgs } from "./cli/index";
 import { handleDatabaseCommand } from "./cli/databaseCommands";
 import { databaseLoaded, loadDatabase, markDatabaseLoaded, runDownloader } from "./core/downloader";
 import { resolveConfig } from "./lib/config";
-import { CancellationError, ConfigurationError, ValidationError } from "./lib/errors";
+import { CancellationError, ConfigurationError, toErrorMessage, ValidationError } from "./lib/errors";
 import { logError } from "./lib/logger";
 
-export const run = async (argv = parseArgs()) => {
+export const run = async (argv = parseArgs()): Promise<number> => {
   if (
     argv["cleanup-db"] !== undefined ||
     argv["backup-db"] !== undefined ||
@@ -21,7 +21,7 @@ export const run = async (argv = parseArgs()) => {
   return 0;
 };
 
-export const handleFatalError = async (err) => {
+export const handleFatalError = async (err: unknown): Promise<number> => {
   let exitCode = 1;
 
   if (err instanceof CancellationError) {
@@ -30,11 +30,13 @@ export const handleFatalError = async (err) => {
     logError(`💥 Configuration Error: ${err.message}`);
   } else if (err instanceof ValidationError) {
     logError(`💥 Validation Error: ${err.message}`);
-  } else {
+  } else if (err instanceof Error) {
     logError(`💥 Error: ${err.message}`);
     if (process.env.NODE_ENV === "development" && err.stack) {
       console.error(err.stack);
     }
+  } else {
+    logError(`💥 Error: ${String(err)}`);
   }
 
   if (databaseLoaded) {
@@ -42,7 +44,7 @@ export const handleFatalError = async (err) => {
       const { closeDatabase } = await loadDatabase();
       closeDatabase();
     } catch (dbErr) {
-      logError(`⚠️  Failed to close database: ${dbErr.message}`);
+      logError(`⚠️  Failed to close database: ${toErrorMessage(dbErr)}`);
     }
   }
 
@@ -56,6 +58,8 @@ export const closeDatabaseOnExit = () => {
     try {
       const { closeDatabase } = await loadDatabase();
       closeDatabase();
-    } catch (err) {}
+    } catch {
+      // Best-effort cleanup on exit
+    }
   });
 };

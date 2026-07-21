@@ -1,4 +1,3 @@
-// @ts-nocheck
 import fs from "fs";
 import path from "path";
 import readline from "readline";
@@ -13,9 +12,16 @@ import {
 } from "./db";
 import type { AppConfig } from "./config";
 import { cancellationToken } from "./cancellation";
-import { DatabaseError } from "./errors";
+import { CancellationError, DatabaseError, toErrorMessage } from "./errors";
+import type { ImmichAlbum, ImmichAsset } from "./types";
 
-const checkFileExistence = async (filePath, expectedChecksum, assetId, albumId, targetDir) => {
+const checkFileExistence = async (
+  filePath: string,
+  expectedChecksum: string,
+  assetId: string,
+  albumId: string,
+  targetDir: string
+): Promise<boolean> => {
   try {
     await fs.promises.access(filePath);
 
@@ -40,20 +46,25 @@ const checkFileExistence = async (filePath, expectedChecksum, assetId, albumId, 
         }
       }
     }
-  } catch (err) {
+  } catch {
     return false;
   }
 
   return false;
 };
 
+interface DownloadAttemptResult {
+  status: "success" | "failed" | "skip";
+  error: unknown;
+}
+
 const downloadWithRetry = async (
   config: AppConfig,
-  asset,
-  outputFilePath,
+  asset: ImmichAsset,
+  outputFilePath: string,
   retries = 3,
-  sizeLimitInBytes
-) => {
+  sizeLimitInBytes: number
+): Promise<DownloadAttemptResult> => {
   // File size is in exifInfo.fileSizeInByte (confirmed from API testing)
   const assetSize =
     asset.exifInfo?.fileSizeInByte || asset.size || asset.fileSize || asset.originalSize || 0;
@@ -63,7 +74,7 @@ const downloadWithRetry = async (
   }
 
   let attempt = 0;
-  let lastError = null;
+  let lastError: unknown = null;
 
   while (attempt < retries) {
     try {
@@ -74,7 +85,7 @@ const downloadWithRetry = async (
       lastError = err;
 
       // If it's a cancellation error, don't retry
-      if (err.name === "CancellationError") {
+      if (err instanceof CancellationError) {
         throw err;
       }
 
@@ -98,7 +109,29 @@ const downloadWithRetry = async (
 
   return { status: "failed", error: lastError };
 };
-export async function downloadAlbum(album, outputDir, options = {}) {
+
+export interface DownloadOptions {
+  force?: boolean;
+  resumeFailed?: boolean;
+  verbose?: boolean;
+  dryRun?: boolean;
+  maxRetries?: number;
+  concurrencyLimit?: number;
+  limitSize?: number;
+  config: AppConfig;
+}
+
+interface FailedItem {
+  filename: string;
+  assetId: string;
+  error: string;
+}
+
+export async function downloadAlbum(
+  album: ImmichAlbum,
+  outputDir: string,
+  options: DownloadOptions
+): Promise<void> {
   // Validate base output directory
   const validatedOutputDir = path.resolve(outputDir);
 
@@ -109,7 +142,7 @@ export async function downloadAlbum(album, outputDir, options = {}) {
 
   fs.mkdirSync(validatedAlbumDir, { recursive: true });
 
-  let assetsToDownload = album.assets;
+  let assetsToDownload: ImmichAsset[] = album.assets ?? [];
 
   if (options.resumeFailed) {
     const failedIds = await getFailedAssets(album.id);
@@ -125,7 +158,7 @@ export async function downloadAlbum(album, outputDir, options = {}) {
   let downloaded = 0;
   let skipped = 0;
   let failed = 0;
-  const failedItems = []; // Track failed items with details
+  const failedItems: FailedItem[] = []; // Track failed items with details
 
   // Calculate total size
   // File size is in exifInfo.fileSizeInByte based on actual API response
@@ -196,20 +229,22 @@ export async function downloadAlbum(album, outputDir, options = {}) {
       const validatedFilePath = validatePathWithinBase(outputFilePath, validatedAlbumDir);
 
       let fileExistsAndValid = false;
-      try {
-        fileExistsAndValid = await checkFileExistence(
-          validatedFilePath,
-          fileChecksum,
-          asset.id,
-          album.id,
-          validatedAlbumDir
-        );
-      } catch (dbErr) {
-        // If database check fails, assume file doesn't exist and continue
-        if (dbErr instanceof DatabaseError) {
-          logError(`⚠️  Database error while checking file existence: ${dbErr.message}`);
+      if (fileChecksum) {
+        try {
+          fileExistsAndValid = await checkFileExistence(
+            validatedFilePath,
+            fileChecksum,
+            asset.id,
+            album.id,
+            validatedAlbumDir
+          );
+        } catch (dbErr) {
+          // If database check fails, assume file doesn't exist and continue
+          if (dbErr instanceof DatabaseError) {
+            logError(`⚠️  Database error while checking file existence: ${toErrorMessage(dbErr)}`);
+          }
+          fileExistsAndValid = false;
         }
-        fileExistsAndValid = false;
       }
 
       // Check cancellation before processing
@@ -310,8 +345,7 @@ export async function downloadAlbum(album, outputDir, options = {}) {
           skippedBytes += assetSize;
         } else if (downloadResult.status === "failed") {
           failed++;
-          const errorMessage =
-            downloadResult.error?.message || downloadResult.error?.toString() || "Unknown error";
+          const errorMessage = toErrorMessage(downloadResult.error) || "Unknown error";
 
           // Store failed item details
           failedItems.push({
@@ -326,9 +360,9 @@ export async function downloadAlbum(album, outputDir, options = {}) {
           } catch (dbErr) {
             // Log database error but don't fail the download process
             if (dbErr instanceof DatabaseError) {
-              logError(`⚠️  Database error while marking asset as failed: ${dbErr.message}`);
+              logError(`⚠️  Database error while marking asset as failed: ${toErrorMessage(dbErr)}`);
             } else {
-              logError(`⚠️  Unexpected error while marking asset as failed: ${dbErr.message}`);
+              logError(`⚠️  Unexpected error while marking asset as failed: ${toErrorMessage(dbErr)}`);
             }
           }
 
@@ -372,9 +406,9 @@ export async function downloadAlbum(album, outputDir, options = {}) {
           } catch (dbErr) {
             // Log database error but don't fail the download process
             if (dbErr instanceof DatabaseError) {
-              logError(`⚠️  Database error while marking asset as downloaded: ${dbErr.message}`);
+              logError(`⚠️  Database error while marking asset as downloaded: ${toErrorMessage(dbErr)}`);
             } else {
-              logError(`⚠️  Unexpected error while marking asset as downloaded: ${dbErr.message}`);
+              logError(`⚠️  Unexpected error while marking asset as downloaded: ${toErrorMessage(dbErr)}`);
             }
           }
         }
@@ -391,21 +425,21 @@ export async function downloadAlbum(album, outputDir, options = {}) {
         });
       } catch (err) {
         // Check if this is a cancellation error
-        if (err.name === "CancellationError" || cancellationToken.isCancelled()) {
+        if (err instanceof CancellationError || cancellationToken.isCancelled()) {
           // Don't mark as failed if cancelled - just rethrow
           throw err;
         }
 
         failed++;
-        const errorMessage = err.message || err.toString() || "Unknown error";
+        const errorMessage = toErrorMessage(err) || "Unknown error";
         try {
           await markAssetAsFailed(asset.id, album.id, errorMessage);
         } catch (dbErr) {
           // Log database error but don't fail the download process
           if (dbErr instanceof DatabaseError) {
-            logError(`⚠️  Database error while marking asset as failed: ${dbErr.message}`);
+            logError(`⚠️  Database error while marking asset as failed: ${toErrorMessage(dbErr)}`);
           } else {
-            logError(`⚠️  Unexpected error while marking asset as failed: ${dbErr.message}`);
+            logError(`⚠️  Unexpected error while marking asset as failed: ${toErrorMessage(dbErr)}`);
           }
         }
 
@@ -441,7 +475,7 @@ export async function downloadAlbum(album, outputDir, options = {}) {
       Array.from({ length: Math.min(concurrencyLimit, assetsToDownload.length) }, runNextAsset)
     );
   } catch (err) {
-    if (err.name === "CancellationError") {
+    if (err instanceof CancellationError) {
       // Cancellation requested - don't treat as error
       // Clear progress line first
       readline.clearLine(process.stdout, 0);

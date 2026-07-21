@@ -2,9 +2,10 @@ import { homedir } from "os";
 import path from "path";
 import fs from "fs";
 import crypto from "crypto";
-import { PathTraversalError, FileSystemError } from "./errors";
+import { PathTraversalError } from "./errors";
+import type { CliArgs } from "./types";
 
-export function expandPath(p) {
+export function expandPath(p: string): string {
   let resolved = p.startsWith("~") ? path.join(homedir(), p.slice(1)) : path.resolve(p);
 
   resolved = path.normalize(resolved);
@@ -22,7 +23,7 @@ export function expandPath(p) {
  * @returns {string} Sanitized name safe for use in file paths
  * @throws {ValidationError} If name is not a valid string type
  */
-export function sanitizeName(name) {
+export function sanitizeName(name: unknown): string {
   if (typeof name !== "string" || name.length === 0) {
     return "unnamed";
   }
@@ -47,7 +48,7 @@ export function sanitizeName(name) {
  * @returns {string} The resolved absolute path
  * @throws {PathTraversalError} If path traversal is detected
  */
-export function validatePathWithinBase(filePath, baseDir) {
+export function validatePathWithinBase(filePath: string, baseDir: string): string {
   const resolved = path.resolve(filePath);
   const base = path.resolve(baseDir);
 
@@ -62,11 +63,11 @@ export function validatePathWithinBase(filePath, baseDir) {
   return resolved;
 }
 
-export function isInteractive(argv) {
+export function isInteractive(argv?: Partial<CliArgs>): boolean {
   return Boolean(process.stdin.isTTY) && argv?.["interactive"] !== false;
 }
 
-export const calculateFileHash = (filePath) => {
+export const calculateFileHash = (filePath: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash("sha1");
     const stream = fs.createReadStream(filePath);
@@ -81,7 +82,7 @@ export const calculateFileHash = (filePath) => {
  * @param {number} bytes - Size in bytes
  * @returns {string} Formatted size string (e.g., "1.5 MB")
  */
-export function formatFileSize(bytes) {
+export function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 B";
   if (bytes === Infinity || isNaN(bytes)) return "Unknown";
 
@@ -97,7 +98,7 @@ export function formatFileSize(bytes) {
  * @param {number} ms - Duration in milliseconds
  * @returns {string} Formatted duration string (e.g., "1h 23m 45s")
  */
-export function formatDuration(ms) {
+export function formatDuration(ms: number): string {
   if (ms === Infinity || isNaN(ms) || ms < 0) return "Unknown";
 
   const seconds = Math.floor(ms / 1000);

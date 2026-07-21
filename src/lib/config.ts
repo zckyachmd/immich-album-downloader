@@ -3,6 +3,7 @@ import { resetEnvConfig } from "../cli/configFile";
 import { promptForConfig } from "../cli/prompts";
 import { ConfigurationError } from "./errors";
 import { isInteractive } from "./helpers";
+import type { CliArgs } from "./types";
 
 export type AppConfig = {
   apiKey: string;
@@ -13,6 +14,7 @@ export type AppConfig = {
   maxRetries: number;
   downloadTimeout: number;
   saveConfig?: boolean;
+  serverInfo?: string;
 };
 
 const defaults = {
@@ -31,7 +33,7 @@ const optionalFromEnv = (env: NodeJS.ProcessEnv) => ({
   downloadTimeout: parseNumber(env.IMMICH_DOWNLOAD_TIMEOUT),
 });
 
-const configFromArgv = (argv) => ({
+const configFromArgv = (argv: Partial<CliArgs>) => ({
   apiKey: argv["api-key"],
   baseUrl: argv["base-url"],
   defaultOutput: argv.output,
@@ -39,13 +41,13 @@ const configFromArgv = (argv) => ({
   maxRetries: argv["max-retries"],
 });
 
-function parseNumber(value) {
+function parseNumber(value: string | undefined): number | undefined {
   if (value === undefined) return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function firstDefined(...values) {
+function firstDefined<T>(...values: (T | undefined)[]): T | undefined {
   return values.find((value) => value !== undefined);
 }
 
@@ -66,10 +68,10 @@ export function validateConfig(input: Partial<AppConfig>, env = process.env): Ap
     );
   }
 
-  let baseUrl;
+  let baseUrl: URL;
   try {
     baseUrl = new URL(input.baseUrl);
-  } catch (e) {
+  } catch {
     throw new ConfigurationError(`IMMICH_BASE_URL must be a valid URL. Got: ${input.baseUrl}`);
   }
 
@@ -108,7 +110,10 @@ export function validateConfig(input: Partial<AppConfig>, env = process.env): Ap
   return config;
 }
 
-export async function resolveConfig(argv = {}, env = process.env): Promise<AppConfig> {
+export async function resolveConfig(
+  argv: Partial<CliArgs> = {},
+  env = process.env
+): Promise<AppConfig> {
   loadDotenv({ override: false });
 
   if (argv["reset-config"]) resetEnvConfig();

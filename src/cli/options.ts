@@ -1,4 +1,6 @@
-export const commonOptions = {
+import type { Options } from "yargs";
+
+export const commonOptions: Record<string, Options> = {
   all: {
     type: "boolean",
     default: false,

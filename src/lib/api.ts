@@ -2,9 +2,10 @@ import fs from "fs";
 import type { AppConfig } from "./config";
 import { logError } from "./logger";
 import { rateLimiter } from "./rateLimiter";
-import { APIError, NetworkError } from "./errors";
+import { APIError, CancellationError, NetworkError, toErrorMessage } from "./errors";
 import { getFetchOptions } from "./fetchConfig";
 import { cancellationToken } from "./cancellation";
+import type { ImmichAlbum, ImmichAsset } from "./types";
 
 const getApiBase = (config: AppConfig) =>
   config.baseUrl.endsWith("/api") ? config.baseUrl : `${config.baseUrl}/api`;
@@ -15,7 +16,7 @@ const getApiBase = (config: AppConfig) =>
  * @throws {APIError} If API request fails
  * @throws {NetworkError} If network error occurs
  */
-export async function getAlbums(config: AppConfig) {
+export async function getAlbums(config: AppConfig): Promise<ImmichAlbum[]> {
   await rateLimiter.waitIfNeeded();
 
   try {
@@ -39,12 +40,12 @@ export async function getAlbums(config: AppConfig) {
       );
     }
 
-    return await res.json();
+    return (await res.json()) as ImmichAlbum[];
   } catch (err) {
     if (err instanceof APIError) {
       throw err;
     }
-    throw new NetworkError(`Network error while fetching albums: ${err.message}`, err);
+    throw new NetworkError(`Network error while fetching albums: ${toErrorMessage(err)}`, err);
   }
 }
 
@@ -56,7 +57,7 @@ export async function getAlbums(config: AppConfig) {
  * @throws {NetworkError} If network error occurs
  * @throws {ValidationError} If response format is invalid
  */
-export async function getAssetsByAlbumId(config: AppConfig, albumId) {
+export async function getAssetsByAlbumId(config: AppConfig, albumId: string): Promise<ImmichAsset[]> {
   const apiBase = getApiBase(config);
 
   try {
@@ -91,12 +92,17 @@ export async function getAssetsByAlbumId(config: AppConfig, albumId) {
     if (err instanceof APIError) {
       throw err;
     }
-    throw new NetworkError(`Network error while fetching album assets: ${err.message}`, err);
+    throw new NetworkError(`Network error while fetching album assets: ${toErrorMessage(err)}`, err);
   }
 }
 
-async function searchAssetsByAlbumId(config: AppConfig, apiBase, albumId, expectedCount) {
-  const assets = [];
+async function searchAssetsByAlbumId(
+  config: AppConfig,
+  apiBase: string,
+  albumId: string,
+  expectedCount: number | undefined
+): Promise<ImmichAsset[]> {
+  const assets: ImmichAsset[] = [];
   const pageSize = 1000;
   let page = 1;
 
@@ -159,7 +165,12 @@ async function searchAssetsByAlbumId(config: AppConfig, apiBase, albumId, expect
  * @throws {NetworkError} If network error occurs after all retries
  * @throws {FileSystemError} If file write fails
  */
-export async function downloadAssetById(config: AppConfig, assetId, destPath, retries = 3) {
+export async function downloadAssetById(
+  config: AppConfig,
+  assetId: string,
+  destPath: string,
+  retries = 3
+): Promise<boolean> {
   // Check cancellation before starting
   cancellationToken.throwIfCancelled();
 
@@ -249,18 +260,16 @@ export async function downloadAssetById(config: AppConfig, assetId, destPath, re
       }
 
       // Check if error is due to cancellation
-      if (cancellationToken.isCancelled() || err.name === "AbortError") {
+      if (cancellationToken.isCancelled() || (err instanceof Error && err.name === "AbortError")) {
         // Clean up partial file if exists
         try {
           if (fs.existsSync(destPath)) {
             fs.unlinkSync(destPath);
           }
-        } catch (cleanupErr) {
+        } catch {
           // Ignore cleanup errors
         }
-        const cancelError = new Error("Download cancelled");
-        cancelError.name = "CancellationError";
-        throw cancelError;
+        throw new CancellationError("Download cancelled");
       }
 
       // If it's an unrecoverable API error, throw immediately
@@ -274,7 +283,7 @@ export async function downloadAssetById(config: AppConfig, assetId, destPath, re
           throw err;
         }
         throw new NetworkError(
-          `Failed to download asset after ${retries} attempts: ${err.message}`,
+          `Failed to download asset after ${retries} attempts: ${toErrorMessage(err)}`,
           err
         );
       }
@@ -285,4 +294,6 @@ export async function downloadAssetById(config: AppConfig, assetId, destPath, re
       await new Promise((r) => setTimeout(r, backoff + jitter));
     }
   }
+
+  return false;
 }

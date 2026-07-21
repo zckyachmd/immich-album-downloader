@@ -1,9 +1,8 @@
-// @ts-nocheck
 import fs from "fs";
 import path from "path";
 import { Database } from "bun:sqlite";
 import { expandPath } from "./helpers";
-import { DatabaseError } from "./errors";
+import { DatabaseError, toErrorMessage } from "./errors";
 import { logError, logWarn } from "./logger";
 
 const dbDir = expandPath("data");
@@ -14,25 +13,30 @@ if (!fs.existsSync(dbDir)) {
   try {
     fs.mkdirSync(dbDir, { recursive: true, mode: 0o700 }); // drwx------
   } catch (err) {
-    throw new DatabaseError(`Failed to create database directory: ${err.message}`, "init");
+    throw new DatabaseError(`Failed to create database directory: ${toErrorMessage(err)}`, "init");
   }
 }
 
 // Initialize database connection
-let db;
+let db: Database | null;
 try {
   db = new Database(dbPath);
-  db.exec("PRAGMA journal_mode = WAL");
-  db.exec("PRAGMA foreign_keys = ON"); // Enable foreign key constraints
+  db.run("PRAGMA journal_mode = WAL");
+  db.run("PRAGMA foreign_keys = ON"); // Enable foreign key constraints
 
   // Set secure permissions on database file (rw-------)
   try {
     fs.chmodSync(dbPath, 0o600);
   } catch (err) {
-    logWarn(`Warning: Could not set database permissions: ${err.message}`);
+    logWarn(`Warning: Could not set database permissions: ${toErrorMessage(err)}`);
   }
 } catch (err) {
-  throw new DatabaseError(`Failed to initialize database: ${err.message}`, "init");
+  throw new DatabaseError(`Failed to initialize database: ${toErrorMessage(err)}`, "init");
+}
+
+interface TableInfoRow {
+  pk: number;
+  name: string;
 }
 
 // Create schema with error handling
@@ -45,15 +49,15 @@ try {
   const existingPk = db
     .prepare("PRAGMA table_info(downloads)")
     .all()
-    .filter((col) => col.pk > 0);
+    .filter((col) => (col as TableInfoRow).pk > 0) as TableInfoRow[];
   const needsMigration =
     existingPk.length > 0 && !(existingPk.length === 2 && existingPk.some((c) => c.name === "album_id"));
 
   if (needsMigration) {
-    db.exec("BEGIN TRANSACTION");
+    db.run("BEGIN TRANSACTION");
     try {
-      db.exec("ALTER TABLE downloads RENAME TO downloads_old_pk_migration");
-      db.exec(`
+      db.run("ALTER TABLE downloads RENAME TO downloads_old_pk_migration");
+      db.run(`
         CREATE TABLE downloads (
           asset_id TEXT NOT NULL,
           album_id TEXT NOT NULL,
@@ -65,19 +69,19 @@ try {
           PRIMARY KEY (asset_id, album_id)
         )
       `);
-      db.exec(`
+      db.run(`
         INSERT INTO downloads (asset_id, album_id, status, checksum, target_dir, downloaded_at, error_message)
         SELECT asset_id, album_id, status, checksum, target_dir, downloaded_at, error_message
         FROM downloads_old_pk_migration
       `);
-      db.exec("DROP TABLE downloads_old_pk_migration");
-      db.exec("COMMIT");
+      db.run("DROP TABLE downloads_old_pk_migration");
+      db.run("COMMIT");
     } catch (migrationErr) {
-      db.exec("ROLLBACK");
+      db.run("ROLLBACK");
       throw migrationErr;
     }
   } else {
-    db.exec(`
+    db.run(`
       CREATE TABLE IF NOT EXISTS downloads (
         asset_id TEXT NOT NULL,
         album_id TEXT NOT NULL,
@@ -92,26 +96,20 @@ try {
   }
 
   // Create index for faster queries
-  db.exec(`
+  db.run(`
     CREATE INDEX IF NOT EXISTS idx_album_status
     ON downloads(album_id, status)
   `);
 
-  db.exec(`
+  db.run(`
     CREATE INDEX IF NOT EXISTS idx_status
     ON downloads(status)
   `);
 } catch (err) {
-  throw new DatabaseError(`Failed to create database schema: ${err.message}`, "schema");
+  throw new DatabaseError(`Failed to create database schema: ${toErrorMessage(err)}`, "schema");
 }
 
-/**
- * Validates database input parameters
- * @param {string} assetId - Asset ID
- * @param {string} albumId - Album ID
- * @throws {DatabaseError} If validation fails
- */
-function validateInput(assetId, albumId) {
+function validateInput(assetId: string, albumId: string): void {
   if (!assetId || typeof assetId !== "string" || assetId.trim().length === 0) {
     throw new DatabaseError("Invalid assetId: must be a non-empty string", "validation");
   }
@@ -124,40 +122,37 @@ function validateInput(assetId, albumId) {
   }
 }
 
-/**
- * Closes database connection gracefully
- * @throws {DatabaseError} If close fails
- */
-export function closeDatabase() {
+export function closeDatabase(): void {
   try {
     if (db) {
       db.close();
       db = null;
     }
   } catch (err) {
-    throw new DatabaseError(`Failed to close database: ${err.message}`, "close");
+    throw new DatabaseError(`Failed to close database: ${toErrorMessage(err)}`, "close");
   }
 }
 
-/**
- * Performs database integrity check
- * @returns {Promise<boolean>} True if database is healthy
- */
-export async function checkDatabaseIntegrity() {
+export async function checkDatabaseIntegrity(): Promise<boolean> {
   try {
     if (!db) {
       return false;
     }
     // Run integrity check
-    const result = db.prepare("PRAGMA integrity_check").get();
-    return result && result.integrity_check === "ok";
+    const result = db.prepare("PRAGMA integrity_check").get() as { integrity_check: string } | null;
+    return result?.integrity_check === "ok";
   } catch (err) {
-    logError(`Database integrity check failed: ${err.message}`);
+    logError(`Database integrity check failed: ${toErrorMessage(err)}`);
     return false;
   }
 }
 
-export async function assetAlreadyDownloaded(assetId, albumId, checksum, targetDir) {
+export async function assetAlreadyDownloaded(
+  assetId: string,
+  albumId: string,
+  checksum: string | null,
+  targetDir: string | null
+): Promise<boolean> {
   try {
     validateInput(assetId, albumId);
 
@@ -175,13 +170,18 @@ export async function assetAlreadyDownloaded(assetId, albumId, checksum, targetD
       throw err;
     }
     throw new DatabaseError(
-      `Failed to check if asset is downloaded: ${err.message}`,
+      `Failed to check if asset is downloaded: ${toErrorMessage(err)}`,
       "assetAlreadyDownloaded"
     );
   }
 }
 
-export async function markAssetAsDownloaded(assetId, albumId, checksum, targetDir) {
+export async function markAssetAsDownloaded(
+  assetId: string,
+  albumId: string,
+  checksum: string | null | undefined,
+  targetDir: string | null | undefined
+): Promise<void> {
   try {
     validateInput(assetId, albumId);
 
@@ -213,13 +213,17 @@ export async function markAssetAsDownloaded(assetId, albumId, checksum, targetDi
       throw err;
     }
     throw new DatabaseError(
-      `Failed to mark asset as downloaded: ${err.message}`,
+      `Failed to mark asset as downloaded: ${toErrorMessage(err)}`,
       "markAssetAsDownloaded"
     );
   }
 }
 
-export async function markAssetAsFailed(assetId, albumId, errorMessage = null) {
+export async function markAssetAsFailed(
+  assetId: string,
+  albumId: string,
+  errorMessage: string | null = null
+): Promise<void> {
   try {
     validateInput(assetId, albumId);
 
@@ -242,11 +246,11 @@ export async function markAssetAsFailed(assetId, albumId, errorMessage = null) {
     if (err instanceof DatabaseError) {
       throw err;
     }
-    throw new DatabaseError(`Failed to mark asset as failed: ${err.message}`, "markAssetAsFailed");
+    throw new DatabaseError(`Failed to mark asset as failed: ${toErrorMessage(err)}`, "markAssetAsFailed");
   }
 }
 
-export async function getFailedAssets(albumId) {
+export async function getFailedAssets(albumId: string): Promise<string[]> {
   try {
     if (!albumId || typeof albumId !== "string" || albumId.trim().length === 0) {
       throw new DatabaseError("Invalid albumId: must be a non-empty string", "validation");
@@ -261,58 +265,63 @@ export async function getFailedAssets(albumId) {
        WHERE album_id = ? AND status = 'failed'
        ORDER BY downloaded_at DESC`
     );
-    const rows = stmt.all(albumId);
+    const rows = stmt.all(albumId) as Array<{ asset_id: string }>;
     return rows.map((row) => row.asset_id);
   } catch (err) {
     if (err instanceof DatabaseError) {
       throw err;
     }
-    throw new DatabaseError(`Failed to get failed assets: ${err.message}`, "getFailedAssets");
+    throw new DatabaseError(`Failed to get failed assets: ${toErrorMessage(err)}`, "getFailedAssets");
   }
 }
 
-/**
- * Gets database statistics
- * @returns {Promise<Object>} Database statistics
- */
-export async function getDatabaseStats() {
+export interface DatabaseStats {
+  total: number;
+  downloaded: number;
+  failed: number;
+  skipped: number;
+}
+
+function getCount(query: string, ...params: string[]): number {
+  if (!db) {
+    throw new DatabaseError("Database connection is not available", "query");
+  }
+  const row = db.prepare(query).get(...params) as { count: number } | null;
+  return row?.count ?? 0;
+}
+
+export async function getDatabaseStats(): Promise<DatabaseStats> {
   try {
     if (!db) {
       throw new DatabaseError("Database connection is not available", "query");
     }
 
-    const stats = {
-      total: db.prepare("SELECT COUNT(*) as count FROM downloads").get().count,
-      downloaded: db
-        .prepare("SELECT COUNT(*) as count FROM downloads WHERE status = 'downloaded'")
-        .get().count,
-      failed: db.prepare("SELECT COUNT(*) as count FROM downloads WHERE status = 'failed'").get()
-        .count,
-      skipped: db.prepare("SELECT COUNT(*) as count FROM downloads WHERE status = 'skip'").get()
-        .count,
+    return {
+      total: getCount("SELECT COUNT(*) as count FROM downloads"),
+      downloaded: getCount("SELECT COUNT(*) as count FROM downloads WHERE status = 'downloaded'"),
+      failed: getCount("SELECT COUNT(*) as count FROM downloads WHERE status = 'failed'"),
+      skipped: getCount("SELECT COUNT(*) as count FROM downloads WHERE status = 'skip'"),
     };
-
-    return stats;
   } catch (err) {
     if (err instanceof DatabaseError) {
       throw err;
     }
-    throw new DatabaseError(
-      `Failed to get database statistics: ${err.message}`,
-      "getDatabaseStats"
-    );
+    throw new DatabaseError(`Failed to get database statistics: ${toErrorMessage(err)}`, "getDatabaseStats");
   }
 }
 
-/**
- * Cleans up old database records
- * @param {Object} options - Cleanup options
- * @param {number} options.daysOld - Delete records older than this many days (default: 90)
- * @param {boolean} options.onlyFailed - Only delete failed records (default: false)
- * @param {string} options.albumId - Only delete records for specific album (optional)
- * @returns {Promise<Object>} Cleanup statistics
- */
-export async function cleanupDatabase(options = {}) {
+export interface CleanupOptions {
+  daysOld?: number;
+  onlyFailed?: boolean;
+  albumId?: string | null;
+}
+
+export interface CleanupResult {
+  deleted: number;
+  cutoffDate: string;
+}
+
+export async function cleanupDatabase(options: CleanupOptions = {}): Promise<CleanupResult> {
   try {
     if (!db) {
       throw new DatabaseError("Database connection is not available", "cleanup");
@@ -371,7 +380,7 @@ export async function cleanupDatabase(options = {}) {
 
     // Vacuum database to reclaim space
     if (deletedCount > 0) {
-      db.exec("VACUUM");
+      db.run("VACUUM");
     }
 
     return {
@@ -382,16 +391,11 @@ export async function cleanupDatabase(options = {}) {
     if (err instanceof DatabaseError) {
       throw err;
     }
-    throw new DatabaseError(`Failed to cleanup database: ${err.message}`, "cleanup");
+    throw new DatabaseError(`Failed to cleanup database: ${toErrorMessage(err)}`, "cleanup");
   }
 }
 
-/**
- * Gets statistics for a specific album
- * @param {string} albumId - Album ID
- * @returns {Promise<Object>} Album statistics
- */
-export async function getAlbumStats(albumId) {
+export async function getAlbumStats(albumId: string): Promise<DatabaseStats> {
   try {
     if (!albumId || typeof albumId !== "string" || albumId.trim().length === 0) {
       throw new DatabaseError("Invalid albumId: must be a non-empty string", "validation");
@@ -401,50 +405,44 @@ export async function getAlbumStats(albumId) {
       throw new DatabaseError("Database connection is not available", "query");
     }
 
-    const stats = {
-      total: db.prepare("SELECT COUNT(*) as count FROM downloads WHERE album_id = ?").get(albumId)
-        .count,
-      downloaded: db
-        .prepare(
-          "SELECT COUNT(*) as count FROM downloads WHERE album_id = ? AND status = 'downloaded'"
-        )
-        .get(albumId).count,
-      failed: db
-        .prepare("SELECT COUNT(*) as count FROM downloads WHERE album_id = ? AND status = 'failed'")
-        .get(albumId).count,
-      skipped: db
-        .prepare("SELECT COUNT(*) as count FROM downloads WHERE album_id = ? AND status = 'skip'")
-        .get(albumId).count,
+    return {
+      total: getCount("SELECT COUNT(*) as count FROM downloads WHERE album_id = ?", albumId),
+      downloaded: getCount(
+        "SELECT COUNT(*) as count FROM downloads WHERE album_id = ? AND status = 'downloaded'",
+        albumId
+      ),
+      failed: getCount(
+        "SELECT COUNT(*) as count FROM downloads WHERE album_id = ? AND status = 'failed'",
+        albumId
+      ),
+      skipped: getCount(
+        "SELECT COUNT(*) as count FROM downloads WHERE album_id = ? AND status = 'skip'",
+        albumId
+      ),
     };
-
-    return stats;
   } catch (err) {
     if (err instanceof DatabaseError) {
       throw err;
     }
-    throw new DatabaseError(`Failed to get album statistics: ${err.message}`, "getAlbumStats");
+    throw new DatabaseError(`Failed to get album statistics: ${toErrorMessage(err)}`, "getAlbumStats");
   }
 }
 
-/**
- * Creates a backup of the database
- * @param {string} backupPath - Optional custom backup path (default: downloads.db.backup.YYYY-MM-DD_HH-MM-SS)
- * @returns {Promise<string>} Path to the backup file
- */
-export async function backupDatabase(backupPath = null) {
+export async function backupDatabase(backupPath: string | null = null): Promise<string> {
   try {
     if (!db) {
       throw new DatabaseError("Database connection is not available", "backup");
     }
 
     // Generate backup filename if not provided
-    if (!backupPath) {
+    let resolvedBackupPath = backupPath;
+    if (!resolvedBackupPath) {
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-      backupPath = path.join(dbDir, `downloads.db.backup.${timestamp}`);
+      resolvedBackupPath = path.join(dbDir, `downloads.db.backup.${timestamp}`);
     }
 
     // Ensure backup directory exists
-    const backupDir = path.dirname(backupPath);
+    const backupDir = path.dirname(resolvedBackupPath);
     if (!fs.existsSync(backupDir)) {
       fs.mkdirSync(backupDir, { recursive: true, mode: 0o700 });
     }
@@ -452,38 +450,32 @@ export async function backupDatabase(backupPath = null) {
     // Use file copy for backup (works with WAL mode)
     // SQLite allows concurrent reads, so this is safe
     // We copy both the main database file and WAL file if it exists
-    fs.copyFileSync(dbPath, backupPath);
+    fs.copyFileSync(dbPath, resolvedBackupPath);
 
     // Also copy WAL file if it exists (for complete backup)
     const walPath = dbPath + "-wal";
-    const walBackupPath = backupPath + "-wal";
+    const walBackupPath = resolvedBackupPath + "-wal";
     if (fs.existsSync(walPath)) {
       fs.copyFileSync(walPath, walBackupPath);
     }
 
     // Set secure permissions on backup file
     try {
-      fs.chmodSync(backupPath, 0o600);
+      fs.chmodSync(resolvedBackupPath, 0o600);
     } catch (err) {
-      logWarn(`Warning: Could not set backup file permissions: ${err.message}`);
+      logWarn(`Warning: Could not set backup file permissions: ${toErrorMessage(err)}`);
     }
 
-    return backupPath;
+    return resolvedBackupPath;
   } catch (err) {
     if (err instanceof DatabaseError) {
       throw err;
     }
-    throw new DatabaseError(`Failed to backup database: ${err.message}`, "backup");
+    throw new DatabaseError(`Failed to backup database: ${toErrorMessage(err)}`, "backup");
   }
 }
 
-/**
- * Restores database from a backup file
- * @param {string} backupPath - Path to the backup file
- * @param {boolean} createBackup - Create backup of current database before restore (default: true)
- * @returns {Promise<string>} Path to the pre-restore backup (if created)
- */
-export async function restoreDatabase(backupPath, createBackup = true) {
+export async function restoreDatabase(backupPath: string, createBackup = true): Promise<string | null> {
   try {
     if (!backupPath || typeof backupPath !== "string") {
       throw new DatabaseError("Invalid backupPath: must be a non-empty string", "validation");
@@ -498,26 +490,26 @@ export async function restoreDatabase(backupPath, createBackup = true) {
       const testDb = new Database(backupPath);
       testDb.prepare("SELECT 1").get();
       testDb.close();
-    } catch (err) {
+    } catch {
       throw new DatabaseError(
         `Invalid backup file (not a valid SQLite database): ${backupPath}`,
         "validation"
       );
     }
 
-    let preRestoreBackup = null;
+    let preRestoreBackup: string | null = null;
 
     // Create backup of current database before restore
     if (createBackup && db && fs.existsSync(dbPath)) {
       try {
         preRestoreBackup = await backupDatabase();
       } catch (err) {
-        logWarn(`Warning: Could not create backup before restore: ${err.message}`);
+        logWarn(`Warning: Could not create backup before restore: ${toErrorMessage(err)}`);
       }
     }
 
     // Close current database connection
-    if (db && db.open) {
+    if (db) {
       db.close();
       db = null;
     }
@@ -529,23 +521,23 @@ export async function restoreDatabase(backupPath, createBackup = true) {
     try {
       fs.chmodSync(dbPath, 0o600);
     } catch (err) {
-      logWarn(`Warning: Could not set database permissions: ${err.message}`);
+      logWarn(`Warning: Could not set database permissions: ${toErrorMessage(err)}`);
     }
 
     // Reopen database connection
     db = new Database(dbPath);
-    db.pragma("journal_mode = WAL");
-    db.pragma("foreign_keys = ON");
+    db.run("PRAGMA journal_mode = WAL");
+    db.run("PRAGMA foreign_keys = ON");
 
     return preRestoreBackup;
   } catch (err) {
     // Try to reopen database if restore failed
-    if (!db || !db.open) {
+    if (!db) {
       try {
         db = new Database(dbPath);
-        db.pragma("journal_mode = WAL");
-        db.pragma("foreign_keys = ON");
-      } catch (reopenErr) {
+        db.run("PRAGMA journal_mode = WAL");
+        db.run("PRAGMA foreign_keys = ON");
+      } catch {
         // Ignore reopen errors
       }
     }
@@ -553,15 +545,19 @@ export async function restoreDatabase(backupPath, createBackup = true) {
     if (err instanceof DatabaseError) {
       throw err;
     }
-    throw new DatabaseError(`Failed to restore database: ${err.message}`, "restore");
+    throw new DatabaseError(`Failed to restore database: ${toErrorMessage(err)}`, "restore");
   }
 }
 
-/**
- * Lists available backup files
- * @returns {Promise<Array<Object>>} Array of backup file info
- */
-export async function listBackups() {
+export interface BackupInfo {
+  filename: string;
+  path: string;
+  size: number;
+  created: Date;
+  modified: Date;
+}
+
+export async function listBackups(): Promise<BackupInfo[]> {
   try {
     if (!fs.existsSync(dbDir)) {
       return [];
@@ -570,7 +566,7 @@ export async function listBackups() {
     const files = fs.readdirSync(dbDir);
     const backups = files
       .filter((file) => file.startsWith("downloads.db.backup."))
-      .map((file) => {
+      .map((file): BackupInfo => {
         const filePath = path.join(dbDir, file);
         const stats = fs.statSync(filePath);
         return {
@@ -581,11 +577,11 @@ export async function listBackups() {
           modified: stats.mtime,
         };
       })
-      .sort((a, b) => b.created - a.created); // Sort by creation date, newest first
+      .sort((a, b) => b.created.getTime() - a.created.getTime()); // Sort by creation date, newest first
 
     return backups;
   } catch (err) {
-    throw new DatabaseError(`Failed to list backups: ${err.message}`, "listBackups");
+    throw new DatabaseError(`Failed to list backups: ${toErrorMessage(err)}`, "listBackups");
   }
 }
 

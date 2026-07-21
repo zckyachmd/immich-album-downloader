@@ -1,12 +1,13 @@
 import type { AppConfig } from "./config";
 import { log, logError } from "./logger";
 import { getFetchOptions } from "./fetchConfig";
+import { getErrorCode, toErrorMessage } from "./errors";
 
 /**
  * Checks if the Immich API is accessible and credentials are valid
  * @returns {Promise<boolean>} True if healthy, false otherwise
  */
-export async function checkHealth(config: AppConfig) {
+export async function checkHealth(config: AppConfig): Promise<boolean> {
   try {
     // Normalize base URL - ensure we have /api prefix
     const apiBase = config.baseUrl.endsWith("/api") ? config.baseUrl : `${config.baseUrl}/api`;
@@ -29,8 +30,8 @@ export async function checkHealth(config: AppConfig) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    let lastError = null;
-    let triedEndpoints = [];
+    let lastError: unknown = null;
+    const triedEndpoints: Array<{ url: string; status: number; reason: string }> = [];
 
     for (const url of endpoints) {
       try {
@@ -114,7 +115,7 @@ export async function checkHealth(config: AppConfig) {
               }
               continue;
             }
-            logError(`❌ Failed to parse JSON response: ${e.message}`);
+            logError(`❌ Failed to parse JSON response: ${toErrorMessage(e)}`);
             logError(`Response preview: ${text.substring(0, 200)}...`, { verbose: true });
             return false;
           }
@@ -153,14 +154,15 @@ export async function checkHealth(config: AppConfig) {
           );
         }
 
-        (config as any).serverInfo = serverInfo || (version !== "connected" ? ` (version: ${version})` : "");
+        config.serverInfo = serverInfo || (version !== "connected" ? ` (version: ${version})` : "");
         return true;
       } catch (fetchError) {
         lastError = fetchError;
+        const fetchErrorCode = getErrorCode(fetchError);
         if (
-          fetchError.code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" ||
-          fetchError.code === "CERT_HAS_EXPIRED" ||
-          fetchError.code === "SELF_SIGNED_CERT_IN_CHAIN"
+          fetchErrorCode === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" ||
+          fetchErrorCode === "CERT_HAS_EXPIRED" ||
+          fetchErrorCode === "SELF_SIGNED_CERT_IN_CHAIN"
         ) {
           throw fetchError;
         }
@@ -180,25 +182,27 @@ export async function checkHealth(config: AppConfig) {
 
     return false;
   } catch (err) {
-    if (err.name === "AbortError") {
+    const errCode = getErrorCode(err);
+    const errMessage = toErrorMessage(err);
+    if (err instanceof Error && err.name === "AbortError") {
       logError("❌ Connection timeout. Please check your IMMICH_BASE_URL and network connection.");
-    } else if (err.code === "ENOTFOUND" || err.code === "ECONNREFUSED") {
+    } else if (errCode === "ENOTFOUND" || errCode === "ECONNREFUSED") {
       logError(`❌ Cannot connect to ${config.baseUrl}. Please check your IMMICH_BASE_URL.`);
     } else if (
-      err.code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" ||
-      err.code === "CERT_HAS_EXPIRED" ||
-      err.code === "SELF_SIGNED_CERT_IN_CHAIN"
+      errCode === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" ||
+      errCode === "CERT_HAS_EXPIRED" ||
+      errCode === "SELF_SIGNED_CERT_IN_CHAIN"
     ) {
-      logError(`❌ SSL certificate error: ${err.message}`);
-    } else if (err.message.includes("fetch") || err.message.includes("JSON")) {
-      logError(`❌ Network/Parse error: ${err.message}`);
-      if (err.message.includes("JSON")) {
+      logError(`❌ SSL certificate error: ${errMessage}`);
+    } else if (errMessage.includes("fetch") || errMessage.includes("JSON")) {
+      logError(`❌ Network/Parse error: ${errMessage}`);
+      if (errMessage.includes("JSON")) {
         logError(
           `💡 This might indicate the server returned HTML instead of JSON. Check your IMMICH_BASE_URL.`
         );
       }
     } else {
-      logError(`❌ Health check failed: ${err.message}`);
+      logError(`❌ Health check failed: ${errMessage}`);
     }
     return false;
   }

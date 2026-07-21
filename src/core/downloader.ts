@@ -1,13 +1,13 @@
-// @ts-nocheck
 import inquirer from "inquirer";
 import { writeEnvConfig } from "../cli/configFile";
 import { getAlbums, getAssetsByAlbumId } from "../lib/api";
 import { cancellationToken, setupSignalHandlers } from "../lib/cancellation";
 import type { AppConfig } from "../lib/config";
-import { CancellationError, ValidationError } from "../lib/errors";
+import { CancellationError, ValidationError, toErrorMessage } from "../lib/errors";
 import { expandPath, isInteractive } from "../lib/helpers";
 import { checkHealth } from "../lib/health";
 import { log, logError, logWarn } from "../lib/logger";
+import type { CliArgs, ImmichAlbum } from "../lib/types";
 
 export let databaseLoaded = false;
 
@@ -20,48 +20,46 @@ export const markDatabaseLoaded = () => {
   databaseLoaded = true;
 };
 
-const validateFlags = (options) => {
-  const flagValidations = [
-    {
-      flag: "limit-size",
-      errorMsg: "❌ --limit-size must be a valid number.",
-      validator: (val) => val > 0 && val <= 100000,
-      rangeMsg: "❌ --limit-size must be between 1 and 100000 MB.",
-    },
-    {
-      flag: "concurrency",
-      errorMsg: "❌ --concurrency must be a valid number.",
-      validator: (val) => val >= 1 && val <= 50,
-      rangeMsg: "❌ --concurrency must be between 1 and 50.",
-    },
-    {
-      flag: "max-retries",
-      errorMsg: "❌ --max-retries must be a valid number.",
-      validator: (val) => val >= 0 && val <= 10,
-      rangeMsg: "❌ --max-retries must be between 0 and 10.",
-    },
-  ];
-
-  flagValidations.forEach(({ flag, errorMsg, validator, rangeMsg }) => {
-    if (options[flag] !== undefined) {
-      if (isNaN(options[flag])) {
-        throw new ValidationError(errorMsg, flag);
-      }
-      if (validator && !validator(options[flag])) {
-        throw new ValidationError(rangeMsg || `${errorMsg} Value out of acceptable range.`, flag);
-      }
+const validateFlags = (options: CliArgs): void => {
+  const limitSize = options["limit-size"];
+  if (limitSize !== undefined) {
+    if (isNaN(limitSize)) {
+      throw new ValidationError("❌ --limit-size must be a valid number.", "limit-size");
     }
-  });
+    if (!(limitSize > 0 && limitSize <= 100000)) {
+      throw new ValidationError("❌ --limit-size must be between 1 and 100000 MB.", "limit-size");
+    }
+  }
 
-  if (options["only"] !== undefined && typeof options["only"] !== "string") {
+  const concurrency = options.concurrency;
+  if (concurrency !== undefined) {
+    if (isNaN(concurrency)) {
+      throw new ValidationError("❌ --concurrency must be a valid number.", "concurrency");
+    }
+    if (!(concurrency >= 1 && concurrency <= 50)) {
+      throw new ValidationError("❌ --concurrency must be between 1 and 50.", "concurrency");
+    }
+  }
+
+  const maxRetries = options["max-retries"];
+  if (maxRetries !== undefined) {
+    if (isNaN(maxRetries)) {
+      throw new ValidationError("❌ --max-retries must be a valid number.", "max-retries");
+    }
+    if (!(maxRetries >= 0 && maxRetries <= 10)) {
+      throw new ValidationError("❌ --max-retries must be between 0 and 10.", "max-retries");
+    }
+  }
+
+  if (options.only !== undefined && typeof options.only !== "string") {
     throw new ValidationError("❌ --only must be a string.", "only");
   }
 
-  if (options["exclude"] !== undefined && typeof options["exclude"] !== "string") {
+  if (options.exclude !== undefined && typeof options.exclude !== "string") {
     throw new ValidationError("❌ --exclude must be a string.", "exclude");
   }
 
-  if (options["output"] !== undefined && typeof options["output"] !== "string") {
+  if (options.output !== undefined && typeof options.output !== "string") {
     throw new ValidationError("❌ --output must be a string.", "output");
   }
 
@@ -70,24 +68,26 @@ const validateFlags = (options) => {
   }
 };
 
-const selectTargets = async (options, albums) => {
+const selectTargets = async (options: CliArgs, albums: ImmichAlbum[]): Promise<ImmichAlbum[]> => {
   if (options.all || options.only) {
     if (options.all) {
       log(`🛠  --all. ${albums.length} target(s).`);
       return albums;
     }
-    if (options["only"]) {
+    const only = options.only;
+    if (only) {
       const filteredAlbums = albums.filter((album) =>
-        album.albumName.toLowerCase().includes(options["only"].toLowerCase())
+        album.albumName.toLowerCase().includes(only.toLowerCase())
       );
       log(`🔎 Filtered by "--only": ${filteredAlbums.length} matched`);
       return filteredAlbums;
     }
   }
 
-  if (options["exclude"]) {
+  const exclude = options.exclude;
+  if (exclude) {
     const filteredAlbums = albums.filter(
-      (album) => !album.albumName.toLowerCase().includes(options["exclude"].toLowerCase())
+      (album) => !album.albumName.toLowerCase().includes(exclude.toLowerCase())
     );
     log(`🔎 Filtered by "--exclude": ${filteredAlbums.length} matched`);
     return filteredAlbums;
@@ -117,7 +117,7 @@ const selectTargets = async (options, albums) => {
   return selectedAlbums;
 };
 
-export const runDownloader = async (options, config: AppConfig) => {
+export const runDownloader = async (options: CliArgs, config: AppConfig): Promise<void> => {
   if (options["dry-run"]) options.verbose = true;
 
   setupSignalHandlers();
@@ -185,7 +185,7 @@ export const runDownloader = async (options, config: AppConfig) => {
         logWarn(`\n⚠️  Download cancelled while fetching album "${album.albumName}".`);
         break;
       }
-      logError(`💥 Failed fetch album from ${album.albumName}: ${err.message}`);
+      logError(`💥 Failed fetch album from ${album.albumName}: ${toErrorMessage(err)}`);
       continue;
     }
 
@@ -208,7 +208,7 @@ export const runDownloader = async (options, config: AppConfig) => {
         config,
       });
     } catch (err) {
-      if (err.name === "CancellationError" || cancellationToken.isCancelled()) {
+      if (err instanceof CancellationError || cancellationToken.isCancelled()) {
         logWarn(`\n⚠️  Download cancelled during album "${album.albumName}".`);
         break;
       }
@@ -240,7 +240,7 @@ export const runDownloader = async (options, config: AppConfig) => {
         log(`   💡 Use --resume-failed to retry failed downloads`);
       }
     } catch (err) {
-      logWarn(`⚠️  Could not retrieve database statistics: ${err.message}`);
+      logWarn(`⚠️  Could not retrieve database statistics: ${toErrorMessage(err)}`);
     }
   }
 

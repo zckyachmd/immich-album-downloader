@@ -1,10 +1,10 @@
-// @ts-nocheck
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { commonOptions } from "./options";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import type { CliArgs } from "../lib/types";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,7 +23,7 @@ const brand = [
   "  Immich Album Downloader",
 ].join("\n");
 
-export const parseArgs = () => {
+export const parseArgs = (): CliArgs => {
   return yargs(hideBin(process.argv))
     .scriptName("immich-album-downloader")
     .usage(`${brand}\n\nUsage: $0 [options]`)
@@ -33,5 +33,5 @@ export const parseArgs = () => {
     .version(packageJson.version)
     .alias("V", "version")
     .wrap(null)
-    .parse();
+    .parseSync() as unknown as CliArgs;
 };

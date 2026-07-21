@@ -76,3 +76,14 @@ export class DatabaseError extends AppError {
     this.operation = operation;
   }
 }
+
+export function toErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+export function getErrorCode(err: unknown): string | undefined {
+  if (typeof err === "object" && err !== null && "code" in err) {
+    return String((err as { code?: unknown }).code);
+  }
+  return undefined;
+}

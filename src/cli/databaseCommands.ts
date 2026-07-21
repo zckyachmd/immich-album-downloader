@@ -9,10 +9,13 @@ import {
 } from "../lib/db";
 import { expandPath, formatFileSize } from "../lib/helpers";
 import { log, logError, logWarn } from "../lib/logger";
+import { toErrorMessage } from "../lib/errors";
+import type { CliArgs } from "../lib/types";
 
-export async function handleDatabaseCommand(argv) {
-  if (argv["cleanup-db"] !== undefined) {
-    const daysOld = argv["cleanup-db"];
+export async function handleDatabaseCommand(argv: CliArgs): Promise<number> {
+  const cleanupDays = argv["cleanup-db"];
+  if (cleanupDays !== undefined) {
+    const daysOld = cleanupDays;
     const onlyFailed = !argv["cleanup-db-all"];
 
     if (!Number.isInteger(daysOld) || daysOld < 1) {
@@ -25,7 +28,7 @@ export async function handleDatabaseCommand(argv) {
       const backupPath = await backupDatabase();
       log(`✅ Backup created: ${backupPath}`);
     } catch (err) {
-      logWarn(`⚠️  Could not create backup before cleanup: ${err.message}`);
+      logWarn(`⚠️  Could not create backup before cleanup: ${toErrorMessage(err)}`);
     }
 
     log(`🧹 Cleaning up database records older than ${daysOld} days...`);
@@ -38,14 +41,15 @@ export async function handleDatabaseCommand(argv) {
       closeDatabase();
       return 0;
     } catch (err) {
-      logError(`❌ Database cleanup failed: ${err.message}`);
+      logError(`❌ Database cleanup failed: ${toErrorMessage(err)}`);
       closeDatabase();
       return 1;
     }
   }
 
-  if (argv["backup-db"] !== undefined) {
-    let backupPath = argv["backup-db"];
+  const backupDbArg = argv["backup-db"];
+  if (backupDbArg !== undefined) {
+    let backupPath = backupDbArg;
 
     if (backupPath.endsWith("/") || backupPath.endsWith("\\")) {
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
@@ -62,14 +66,15 @@ export async function handleDatabaseCommand(argv) {
       closeDatabase();
       return 0;
     } catch (err) {
-      logError(`❌ Database backup failed: ${err.message}`);
+      logError(`❌ Database backup failed: ${toErrorMessage(err)}`);
       closeDatabase();
       return 1;
     }
   }
 
-  if (argv["restore-db"] !== undefined) {
-    const backupPath = argv["restore-db"];
+  const restoreDbArg = argv["restore-db"];
+  if (restoreDbArg !== undefined) {
+    const backupPath = restoreDbArg;
 
     log(`⚠️  WARNING: This will replace the current database with the backup!`);
     log(`📂 Restoring from: ${backupPath}`);
@@ -83,7 +88,7 @@ export async function handleDatabaseCommand(argv) {
       closeDatabase();
       return 0;
     } catch (err) {
-      logError(`❌ Database restore failed: ${err.message}`);
+      logError(`❌ Database restore failed: ${toErrorMessage(err)}`);
       closeDatabase();
       return 1;
     }
@@ -111,9 +116,11 @@ export async function handleDatabaseCommand(argv) {
       closeDatabase();
       return 0;
     } catch (err) {
-      logError(`❌ Failed to list backups: ${err.message}`);
+      logError(`❌ Failed to list backups: ${toErrorMessage(err)}`);
       closeDatabase();
       return 1;
     }
   }
+
+  return 1;
 }

@@ -51,6 +51,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1.2.21",
+    "@types/inquirer": "9.0.10",
     "@types/yargs": "^17.0.33",
     "typescript": "^5.9.2"
   }
